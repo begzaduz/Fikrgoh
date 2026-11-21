@@ -1,0 +1,19 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --paper: #f3ecdd; --ink: #211c17; --sand: #e8dec9; --line: #d9cdb5; --muted: #6b5f52;
+  --clay: #a2461f; --onclay: #f3ecdd; --sage: #5f6f55; --night: #211c17; --onnight: #f3ecdd;
+  --safe-top: calc(env(safe-area-inset-top, 0px) + var(--tg-content-safe-area-inset-top, 0px));
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --paper: #211c17; --ink: #f3ecdd; --sand: #2e2721; --line: #4a4036; --muted: #b9ad9a;
+    --clay: #e39a70; --onclay: #211c17; --sage: #3b4634; --night: #15110e; --onnight: #f3ecdd;
+  }
+}
+html, body, #root { height: 100%; margin: 0; }
+body { background: var(--paper); color: var(--ink); font-family: Inter, system-ui, sans-serif; -webkit-font-smoothing: antialiased; }
+button { font: inherit; cursor: pointer; }
+button:focus-visible, textarea:focus-visible, input:focus-visible { outline: 2px solid var(--clay); outline-offset: 2px; }

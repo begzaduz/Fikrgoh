@@ -1,0 +1,1 @@
+{"root":["./src/App.tsx","./src/main.tsx","./src/store.tsx","./src/components/DailyCard.tsx","./src/components/ThoughtCard.tsx","./src/lib/alphabet.ts","./src/lib/api.ts","./src/lib/supabase.ts","./src/lib/tg.ts","./src/pages/Home.tsx","./src/pages/Profile.tsx","./src/pages/Shorts.tsx"],"version":"5.7.3"}

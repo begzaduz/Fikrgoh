@@ -1,0 +1,5 @@
+project_id = "svihzrgndgnketairtog"
+
+# Kirish funksiyasi JWT'siz chaqiriladi: Telegram initData imzosini funksiyaning o‘zi tekshiradi.
+[functions.telegram-auth]
+verify_jwt = false
