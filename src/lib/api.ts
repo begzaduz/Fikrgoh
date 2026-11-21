@@ -24,17 +24,21 @@ export async function login(): Promise<{ ok: boolean; error?: string }> {
   const initData = tg()?.initData;
   const body = initData ? { initData } : import.meta.env.DEV ? { dev: { telegramId: 100001, firstName: "Bekzod" } } : null;
   if (!body) return { ok: false, error: "Telegram ma’lumoti (initData) kelmadi" };
-  const res = await supabase.functions.invoke("swift-processor", { body });
-  if (res.error || !res.data?.access_token) {
-    let detail = res.error?.message ?? "javobda token yo‘q";
-    const ctx = (res.error as { context?: Response } | null)?.context;
-    if (ctx && typeof ctx.json === "function") {
-      const j = await ctx.json().catch(() => null);
-      detail = `${ctx.status}: ${j?.error ?? j?.message ?? detail}`;
-    }
-    return { ok: false, error: detail };
+  // Oddiy fetch: faqat funksiya ruxsat bergan sarlavhalar (content-type, apikey, authorization) yuboriladi.
+  const key = import.meta.env.VITE_SUPABASE_ANON_KEY as string;
+  let res: Response;
+  try {
+    res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/swift-processor`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", apikey: key, Authorization: `Bearer ${key}` },
+      body: JSON.stringify(body),
+    });
+  } catch (e) {
+    return { ok: false, error: `Tarmoq xatosi (${e instanceof Error ? e.message : "noma’lum"})` };
   }
-  const set = await supabase.auth.setSession({ access_token: res.data.access_token, refresh_token: res.data.refresh_token });
+  const out = (await res.json().catch(() => null)) as { access_token?: string; refresh_token?: string; error?: string; message?: string } | null;
+  if (!res.ok || !out?.access_token) return { ok: false, error: `${res.status}: ${out?.error ?? out?.message ?? "javob noto‘g‘ri"}` };
+  const set = await supabase.auth.setSession({ access_token: out.access_token, refresh_token: out.refresh_token ?? "" });
   return set.error ? { ok: false, error: set.error.message } : { ok: true };
 }
 
