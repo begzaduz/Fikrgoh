@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 // Frontend + kirish jarayoni: soxta Telegram va soxta Supabase javoblari bilan.
-import { describe, it, expect, vi, beforeAll } from "vitest";
-import { render, screen, waitFor, fireEvent } from "@testing-library/react";
+import { describe, it, expect, vi, beforeAll, afterEach } from "vitest";
+import { render, screen, waitFor, fireEvent, cleanup } from "@testing-library/react";
 
 const b64 = (o: object) => Buffer.from(JSON.stringify(o)).toString("base64url");
 const jwt = `${b64({ alg: "HS256", typ: "JWT" })}.${b64({ sub: "u1", role: "authenticated", aud: "authenticated", exp: Math.floor(Date.now() / 1000) + 3600, session_id: "s1" })}.sig`;
@@ -10,6 +10,8 @@ const DAILY = { day: "2026-11-21", done: 0, streak: 0, points: 0, level: 0, leve
   questions: [0, 1, 2, 3, 4].map((i) => ({ index: i, text: `Savol ${i}?`, answer: null })) };
 const FEED = [{ id: 1, category: "fikr", title: "Töğri savol", body: "Matn", read_minutes: 1, created_at: "2026-11-21", likes: 2, liked: false, saved: false }];
 const calls: string[] = [];
+const writes: Array<{ url: string; body: any }> = [];
+afterEach(cleanup);
 const json = (b: unknown, status = 200) => new Response(JSON.stringify(b), { status, headers: { "Content-Type": "application/json" } });
 
 beforeAll(() => {
@@ -19,6 +21,7 @@ beforeAll(() => {
   window.fetch = vi.fn(async (input: any, init?: any) => {
     const url = String(input?.url ?? input);
     calls.push(`${init?.method ?? "GET"} ${url.replace("https://x.supabase.co", "")}`);
+    if (init?.method === "POST" && url.includes("/rest/v1/") && init.body) writes.push({ url, body: JSON.parse(init.body) });
     if (url.includes("/functions/v1/swift-processor")) return json({ access_token: jwt, refresh_token: "r" });
     if (url.includes("/auth/v1/user")) return json(USER);
     if (url.includes("/rpc/feed")) return json(FEED);
@@ -49,5 +52,24 @@ describe("Fikrnoma", () => {
     fireEvent.change(screen.getByLabelText(/Javobingiz/), { target: { value: "Javob" } });
     fireEvent.click(screen.getByRole("button", { name: /Javobni saqla[sş]/ }));
     await waitFor(() => expect(calls.some((c) => c.includes("/rpc/save_answer"))).toBe(true));
+  });
+
+  it("admin eski alifboda yozadi, matn yangi alifboda joylanadi", async () => {
+    const { AppProvider } = await import("../src/store");
+    const { default: App } = await import("../src/App");
+    render(<AppProvider><App /></AppProvider>);
+    await waitFor(() => expect(screen.getByText("Bugungi 5 savol")).toBeTruthy(), { timeout: 4000 });
+
+    fireEvent.click(screen.getByRole("button", { name: "Yangi fikr" }));
+    fireEvent.change(await screen.findByLabelText("Sarlavha"), { target: { value: "To‘g‘ri savol" } });
+    fireEvent.change(screen.getByLabelText("Matn"), { target: { value: "Shoshilinch fikr: bu yigirma belgidan ko‘p matn." } });
+    fireEvent.click(screen.getByRole("button", { name: /Joyla[sş]/ }));
+
+    await waitFor(() => expect(writes.some((w) => w.url.includes("/rest/v1/thoughts"))).toBe(true));
+    const w = writes.find((x) => x.url.includes("/rest/v1/thoughts"))!;
+    expect(w.body.title).toBe("Töğri savol");
+    expect(w.body.body).toBe("Şoşilinç fikr: bu yigirma belgidan köp matn.");
+    expect(w.body.category).toBe("fikr");
+    expect(w.body.author_id).toBe("u1");
   });
 });

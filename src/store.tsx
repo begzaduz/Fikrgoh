@@ -6,6 +6,9 @@ import { haptic, tg } from "./lib/tg";
 
 type Status = "loading" | "ready" | "guest" | "unconfigured";
 type Alpha = "new" | "old";
+export type PublishInput =
+  | { kind: "thought"; category: api.Category; title: string; body: string }
+  | { kind: "short"; category: api.Category; quote: string; tone: api.Short["tone"] };
 
 type Store = {
   status: Status;
@@ -25,6 +28,8 @@ type Store = {
   react: (t: api.Thought, kind: "like" | "save") => void;
   answer: (index: number, body: string) => Promise<boolean>;
   changeAlphabet: (a: Alpha) => void;
+  canWrite: boolean;
+  publish: (p: PublishInput) => Promise<boolean>;
 };
 
 const Ctx = createContext<Store>(null!);
@@ -108,10 +113,31 @@ export function AppProvider({ children }: { children: ReactNode }) {
     api.setAlphabet(a).catch(() => flash("Sozlama saqlanmadi"));
   };
 
+  const canWrite = profile?.role === "admin";
+  const publish: Store["publish"] = async (p) => {
+    if (!profile || !canWrite) return false;
+    try {
+      if (p.kind === "thought") {
+        await api.createThought(profile.id, p);
+        setThoughts(await api.getFeed());
+      } else {
+        await api.createShort(p);
+        setShorts(await api.getShorts());
+      }
+      haptic.ok();
+      flash("Joylandi");
+      return true;
+    } catch (e) {
+      haptic.err();
+      flash(`Joylab bo‘lmadi${e instanceof Error ? ": " + e.message : ""}`.slice(0, 120));
+      return false;
+    }
+  };
+
   const value = useMemo<Store>(
-    () => ({ status, loginError, profile, alphabet, u, c, thoughts, shorts, daily, answers, notice, search, react, answer, changeAlphabet }),
+    () => ({ status, loginError, profile, alphabet, u, c, thoughts, shorts, daily, answers, notice, search, react, answer, changeAlphabet, canWrite, publish }),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [status, loginError, profile, alphabet, u, c, thoughts, shorts, daily, answers, notice],
+    [status, loginError, profile, alphabet, u, c, thoughts, shorts, daily, answers, notice, canWrite],
   );
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 }

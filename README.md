@@ -20,11 +20,12 @@ Matnlar **yangi o‘zbek lotin alifbosida** (Ö Ğ Ş Ç); foydalanuvchi sozlama
 5. Joylash: Vercel/Netlify (`npm run build`, `dist/`), keyin @BotFather → Mini App URL.
 
 ## Kontent qo‘shish
-Hozircha Supabase → Table Editor → `thoughts` / `shorts` jadvallariga **yangi alifboda** yoziladi (`category`: fikr | mindset | madaniyat).
-Eski alifboda yozilgan matnni o‘girish uchun `src/lib/alphabet.ts: toNew()`.
+Admin (ADMIN_TELEGRAM_IDS ichidagi Telegram akkaunt) ilovaning o‘zida yozadi: Bosh sahifa yoki Shorts'dagi **+** tugmasi → Fikr yoki Short, yo‘nalish, matn.
+Matn eski alifboda yozilsa, avtomatik yangi alifboga o‘giriladi (ko‘rib chiqish oynasi bor). Oddiy foydalanuvchilarga tugma ko‘rinmaydi va baza ham ularga yozishga ruxsat bermaydi (RLS).
+Zaxira yo‘l: Supabase → Table Editor → `thoughts` / `shorts` (matn yangi alifboda yoziladi).
 
 ## Tekshiruvlar
-- `npm test` — alifbo o‘girgichi (5 test).
+- `npm test` — alifbo o‘girgichi (5 test). `npm run test:ui` — kirish, kunlik savollar, admin yozishi (soxta Telegram/Supabase bilan).
 - SQL sxema va xavfsizlik qoidalari Postgres 16'da sinalgan (RLS, qidiruv, ball, streak).
 - **Sinalmagan:** Edge Function (haqiqiy Supabase va Telegram'da), interfeys brauzerda.
 

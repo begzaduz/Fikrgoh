@@ -64,3 +64,17 @@ export async function setReaction(thoughtId: number, kind: "like" | "save", on: 
     : await supabase.from(table).delete().eq("user_id", uid).eq("thought_id", thoughtId);
   if (r.error) throw new Error(r.error.message);
 }
+
+/* ---------- Admin: fikr va qisqa fikr joylash (RLS faqat adminga ruxsat beradi) ---------- */
+export async function createThought(authorId: string, p: { category: Category; title: string; body: string }) {
+  const words = p.body.trim().split(/\s+/).length;
+  const r = await supabase.from("thoughts").insert({
+    author_id: authorId, category: p.category, title: p.title, body: p.body, read_minutes: Math.max(1, Math.ceil(words / 180)),
+  });
+  if (r.error) throw new Error(r.error.message);
+}
+export async function createShort(p: { category: Category; quote: string; tone: Short["tone"] }) {
+  // Yangisi birinchi chiqishi uchun salbiy tartib raqami (oddiy ro‘yxat position bo‘yicha o‘sish tartibida).
+  const r = await supabase.from("shorts").insert({ category: p.category, quote: p.quote, tone: p.tone, position: -Math.floor(Date.now() / 1000) });
+  if (r.error) throw new Error(r.error.message);
+}
