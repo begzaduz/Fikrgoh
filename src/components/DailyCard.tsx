@@ -58,7 +58,7 @@ export function DailyCard() {
               <p className="mb-3.5 text-[13px] text-muted">{u("Javobingiz faqat sizga ko‘rinadi.")}</p>
               <div className="flex gap-2.5">
                 <button className="min-h-[46px] flex-1 rounded-2xl bg-clay font-bold text-onclay disabled:opacity-50" disabled={busy || !text.trim()} onClick={submit}>
-                  {u("Saqlash")}
+                  {u("Javobni saqlash")}
                 </button>
                 <button className="min-h-[46px] px-4 text-muted" onClick={() => setOpen(false)}>{u("Keyinroq")}</button>
               </div>
