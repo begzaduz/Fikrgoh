@@ -47,6 +47,7 @@ export function Profile() {
         <button className={seg(alphabet === "new")} aria-pressed={alphabet === "new"} onClick={() => changeAlphabet("new")}>Yangi: Ö Ğ Ş Ç</button>
         <button className={seg(alphabet === "old")} aria-pressed={alphabet === "old"} onClick={() => changeAlphabet("old")}>Eski: O‘ G‘ Sh Ch</button>
       </div>
+      <p className="mt-8 text-[12px] text-muted">v {__BUILD__} · {u("rol")}: {profile?.role === "admin" ? "admin" : u("oddiy")}</p>
     </div>
   );
 }

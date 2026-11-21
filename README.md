@@ -21,6 +21,7 @@ Matnlar **yangi o‘zbek lotin alifbosida** (Ö Ğ Ş Ç); foydalanuvchi sozlama
 
 ## Kontent qo‘shish
 Admin (ADMIN_TELEGRAM_IDS ichidagi Telegram akkaunt) ilovaning o‘zida yozadi: Bosh sahifa yoki Shorts'dagi **+** tugmasi → Fikr yoki Short, yo‘nalish, matn.
+Shu yerdan tahrirlash va o‘chirish ham mumkin (kartadagi **⋯** menyusi). Short uchun video yuklanadi (MP4, 50 MB gacha; `0002_media.sql` ni bir marta ishga tushiring).
 Matn eski alifboda yozilsa, avtomatik yangi alifboga o‘giriladi (ko‘rib chiqish oynasi bor). Oddiy foydalanuvchilarga tugma ko‘rinmaydi va baza ham ularga yozishga ruxsat bermaydi (RLS).
 Zaxira yo‘l: Supabase → Table Editor → `thoughts` / `shorts` (matn yangi alifboda yoziladi).
 

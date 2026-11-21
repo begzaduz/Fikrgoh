@@ -3,7 +3,7 @@ import { tg } from "./tg";
 
 export type Category = "fikr" | "mindset" | "madaniyat";
 export type Thought = { id: number; category: Category; title: string; body: string; read_minutes: number; created_at: string; likes: number; liked: boolean; saved: boolean };
-export type Short = { id: number; category: Category; quote: string; tone: "sand" | "sage" | "ink" | "clay" };
+export type Short = { id: number; category: Category; quote: string; tone: "sand" | "sage" | "ink" | "clay"; video_url: string | null };
 export type Daily = {
   day: string;
   questions: Array<{ index: number; text: string; answer: string | null }>;
@@ -48,7 +48,14 @@ export const setAlphabet = async (alphabet: "new" | "old") => {
   if (r.error) throw new Error(r.error.message);
 };
 export const getFeed = async (q = "") => must(await supabase.rpc("feed", { p_q: q || null, p_limit: 30 })) as Thought[];
-export const getShorts = async () => must(await supabase.from("shorts").select("id, category, quote, tone").eq("published", true).order("position")) as Short[];
+/** video_url ustuni (0002_media.sql) hali yaratilmagan bo‘lsa ham ro‘yxat ishlashi uchun zaxira so‘rov. */
+export const getShorts = async (): Promise<Short[]> => {
+  const full = await supabase.from("shorts").select("id, category, quote, tone, video_url").eq("published", true).order("position");
+  if (!full.error) return (full.data ?? []) as Short[];
+  const basic = await supabase.from("shorts").select("id, category, quote, tone").eq("published", true).order("position");
+  if (basic.error) throw new Error(basic.error.message);
+  return (basic.data ?? []).map((x) => ({ ...x, video_url: null })) as Short[];
+};
 export const getDaily = async () => must(await supabase.rpc("get_daily")) as Daily;
 export const saveAnswer = async (index: number, body: string) => must(await supabase.rpc("save_answer", { p_idx: index, p_body: body })) as Daily;
 export const getAnswers = async () =>
@@ -65,16 +72,78 @@ export async function setReaction(thoughtId: number, kind: "like" | "save", on: 
   if (r.error) throw new Error(r.error.message);
 }
 
-/* ---------- Admin: fikr va qisqa fikr joylash (RLS faqat adminga ruxsat beradi) ---------- */
+/* ---------- Admin: joylash, tahrirlash, o‘chirish, video yuklash (RLS faqat adminga ruxsat beradi) ---------- */
+const minutes = (body: string) => Math.max(1, Math.ceil(body.trim().split(/\s+/).length / 180));
+const fail = (e: { message: string } | null) => {
+  if (e) throw new Error(e.message);
+};
+
 export async function createThought(authorId: string, p: { category: Category; title: string; body: string }) {
-  const words = p.body.trim().split(/\s+/).length;
-  const r = await supabase.from("thoughts").insert({
-    author_id: authorId, category: p.category, title: p.title, body: p.body, read_minutes: Math.max(1, Math.ceil(words / 180)),
-  });
-  if (r.error) throw new Error(r.error.message);
+  fail((await supabase.from("thoughts").insert({ author_id: authorId, category: p.category, title: p.title, body: p.body, read_minutes: minutes(p.body) })).error);
 }
-export async function createShort(p: { category: Category; quote: string; tone: Short["tone"] }) {
-  // Yangisi birinchi chiqishi uchun salbiy tartib raqami (oddiy ro‘yxat position bo‘yicha o‘sish tartibida).
-  const r = await supabase.from("shorts").insert({ category: p.category, quote: p.quote, tone: p.tone, position: -Math.floor(Date.now() / 1000) });
-  if (r.error) throw new Error(r.error.message);
+export async function updateThought(id: number, p: { category: Category; title: string; body: string }) {
+  const r = await supabase.from("thoughts").update({ category: p.category, title: p.title, body: p.body, read_minutes: minutes(p.body) }).eq("id", id).select("id");
+  fail(r.error);
+  if (!r.data?.length) throw new Error("topilmadi yoki ruxsat yo‘q");
+}
+export async function deleteThought(id: number) {
+  const r = await supabase.from("thoughts").delete().eq("id", id).select("id");
+  fail(r.error);
+  if (!r.data?.length) throw new Error("topilmadi yoki ruxsat yo‘q");
+}
+
+type ShortInput = { category: Category; quote: string; tone: Short["tone"]; video_url: string | null };
+export async function createShort(p: ShortInput) {
+  // Yangisi birinchi chiqishi uchun salbiy tartib raqami (ro‘yxat position bo‘yicha o‘sish tartibida).
+  fail((await supabase.from("shorts").insert({ ...p, position: -Math.floor(Date.now() / 1000) })).error);
+}
+export async function updateShort(id: number, p: ShortInput) {
+  const r = await supabase.from("shorts").update(p).eq("id", id).select("id");
+  fail(r.error);
+  if (!r.data?.length) throw new Error("topilmadi yoki ruxsat yo‘q");
+}
+export async function deleteShort(id: number) {
+  const r = await supabase.from("shorts").delete().eq("id", id).select("id");
+  fail(r.error);
+  if (!r.data?.length) throw new Error("topilmadi yoki ruxsat yo‘q");
+}
+
+export const BUCKET = "shorts-media";
+export const MAX_VIDEO_BYTES = 50 * 1024 * 1024; // Supabase bepul tarifidagi bitta fayl chegarasi
+const DIRECT = import.meta.env.VITE_SUPABASE_URL as string;
+
+/** Videoni Storage'ga yuklaydi (foiz bilan). Avval to‘g‘ridan-to‘g‘ri, tarmoq xatosi bo‘lsa Vercel proksi orqali. Ochiq havolani qaytaradi. */
+export async function uploadVideo(file: File, onProgress: (pct: number) => void): Promise<string> {
+  const ext = file.type === "video/webm" ? "webm" : file.type === "video/quicktime" ? "mov" : "mp4";
+  const path = `${crypto.randomUUID()}.${ext}`;
+  const token = (await supabase.auth.getSession()).data.session?.access_token;
+  if (!token) throw new Error("kirish kerak");
+  const key = import.meta.env.VITE_SUPABASE_ANON_KEY as string;
+
+  const send = (base: string) =>
+    new Promise<void>((resolve, reject) => {
+      const xhr = new XMLHttpRequest();
+      xhr.open("POST", `${base}/storage/v1/object/${BUCKET}/${path}`);
+      xhr.setRequestHeader("apikey", key);
+      xhr.setRequestHeader("Authorization", `Bearer ${token}`);
+      xhr.setRequestHeader("Content-Type", file.type);
+      xhr.upload.onprogress = (e) => e.lengthComputable && onProgress(Math.round((e.loaded / e.total) * 100));
+      xhr.onload = () => (xhr.status < 300 ? resolve() : reject(new Error(`${xhr.status}: ${xhr.responseText.slice(0, 120)}`)));
+      xhr.onerror = () => reject(Object.assign(new Error("tarmoq xatosi"), { network: true }));
+      xhr.send(file);
+    });
+
+  try {
+    await send(DIRECT);
+  } catch (e) {
+    if (!(e as { network?: boolean }).network) throw e;
+    await send(API_URL);
+  }
+  return `${DIRECT}/storage/v1/object/public/${BUCKET}/${path}`;
+}
+
+/** Eski/o‘chirilgan video faylini Storage'dan olib tashlaydi (xato bo‘lsa e’tibor bermaydi). */
+export async function removeVideo(url: string | null) {
+  const path = url?.split(`/${BUCKET}/`)[1];
+  if (path) await supabase.storage.from(BUCKET).remove([path]).catch(() => {});
 }

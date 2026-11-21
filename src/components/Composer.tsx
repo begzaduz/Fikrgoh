@@ -1,37 +1,69 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { motion } from "framer-motion";
-import { X } from "lucide-react";
-import type { Category, Short } from "../lib/api";
+import { Film, X } from "lucide-react";
+import { MAX_VIDEO_BYTES, uploadVideo, type Category, type Short } from "../lib/api";
 import { toNew } from "../lib/alphabet";
-import { useApp } from "../store";
+import { useApp, type ComposerState } from "../store";
 import { CATEGORY_LABEL } from "./ThoughtCard";
 
 const TONES: Array<[Short["tone"], string]> = [["sand", "Qum"], ["sage", "Moxor"], ["ink", "Siyoh"], ["clay", "Loy"]];
+const mb = (n: number) => (n / 1024 / 1024).toFixed(1);
 
-/** Admin uchun yozish oynasi. Matn eski alifboda yozilsa, yangisiga (kanonik) avtomatik o‘giriladi. */
-export function Composer({ onClose }: { onClose: () => void }) {
+/**
+ * Admin uchun yozish oynasi: yangi fikr/short joylash yoki mavjudini tahrirlash, short uchun video yuklash.
+ * Matn eski alifboda yozilsa, yangisiga (kanonik) avtomatik o‘giriladi. Tahrirlashda matn allaqachon yangi alifboda.
+ */
+export function Composer({ state, onClose }: { state: Exclude<ComposerState, null>; onClose: () => void }) {
   const { publish, u } = useApp();
-  const [kind, setKind] = useState<"thought" | "short">("thought");
-  const [category, setCategory] = useState<Category>("fikr");
-  const [tone, setTone] = useState<Short["tone"]>("sand");
-  const [title, setTitle] = useState("");
-  const [body, setBody] = useState("");
-  const [already, setAlready] = useState(false);
+  const edit = state.mode === "edit" ? state : null;
+  const [kind, setKind] = useState<"thought" | "short">(edit?.kind ?? "thought");
+  const [category, setCategory] = useState<Category>(edit?.category ?? "fikr");
+  const [tone, setTone] = useState<Short["tone"]>(edit?.kind === "short" ? edit.tone : "sand");
+  const [title, setTitle] = useState(edit?.kind === "thought" ? edit.title : "");
+  const [body, setBody] = useState(edit ? (edit.kind === "thought" ? edit.body : edit.quote) : "");
+  const [already, setAlready] = useState(!!edit);
+  const [video, setVideo] = useState<string | null>(edit?.kind === "short" ? edit.video_url : null);
+  const [file, setFile] = useState<File | null>(null);
+  const [fileError, setFileError] = useState("");
+  const [progress, setProgress] = useState<number | null>(null);
   const [busy, setBusy] = useState(false);
+  const picker = useRef<HTMLInputElement>(null);
 
   const conv = (s: string) => (already ? s : toNew(s));
-  const valid = kind === "thought" ? title.trim().length >= 3 && body.trim().length >= 20 : body.trim().length >= 5;
-  const changed = conv(title) !== title || conv(body) !== body;
+  const hasVideo = !!file || !!video;
+  const valid = kind === "thought" ? title.trim().length >= 3 && body.trim().length >= 20 : body.trim().length >= 5 || hasVideo;
+  const changed = !already && (conv(title) !== title || conv(body) !== body);
+
+  const pick = (f: File | undefined) => {
+    setFileError("");
+    if (!f) return;
+    if (!f.type.startsWith("video/")) return setFileError("Faqat video fayl tanlang (MP4 tavsiya etiladi).");
+    if (f.size > MAX_VIDEO_BYTES) return setFileError(`Fayl juda katta (${mb(f.size)} MB). Chegara: 50 MB.`);
+    setFile(f);
+  };
 
   const submit = async () => {
     if (!valid || busy) return;
     setBusy(true);
+    let url = video;
+    if (kind === "short" && file) {
+      try {
+        setProgress(0);
+        url = await uploadVideo(file, setProgress);
+      } catch (e) {
+        setBusy(false);
+        setProgress(null);
+        return setFileError(`Video yuklanmadi: ${e instanceof Error ? e.message : "noma’lum xato"}`);
+      }
+    }
+    const id = edit?.id;
     const ok = await publish(
       kind === "thought"
-        ? { kind, category, title: conv(title.trim()), body: conv(body.trim()) }
-        : { kind, category, quote: conv(body.trim()), tone },
+        ? { kind, id, category, title: conv(title.trim()), body: conv(body.trim()) }
+        : { kind, id, category, quote: conv(body.trim()), tone, videoUrl: url, oldVideoUrl: edit?.kind === "short" ? edit.video_url : null },
     );
     setBusy(false);
+    setProgress(null);
     if (ok) onClose();
   };
 
@@ -39,19 +71,21 @@ export function Composer({ onClose }: { onClose: () => void }) {
   const field = "w-full rounded-2xl border border-line bg-sand p-3 text-base text-ink placeholder:text-muted";
 
   return (
-    <motion.div className="fixed inset-0 z-50 flex justify-center bg-paper" role="dialog" aria-modal="true" aria-label={u("Yangi fikr")}
+    <motion.div className="fixed inset-0 z-50 flex justify-center bg-paper" role="dialog" aria-modal="true" aria-label={edit ? u("Tahrirlash") : u("Yangi fikr")}
       initial={{ y: 40, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: 40, opacity: 0 }}>
       <div className="flex h-full w-full max-w-[560px] flex-col">
         <header className="flex items-center justify-between border-b border-line px-4 pb-2 pt-[calc(8px+var(--safe-top))]">
-          <h2 className="font-serif text-xl font-bold">{u("Yangi")}</h2>
+          <h2 className="font-serif text-xl font-bold">{edit ? u("Tahrirlash") : u("Yangi")}</h2>
           <button className="flex min-h-[44px] min-w-[44px] items-center justify-center" onClick={onClose} aria-label={u("Yopish")}><X size={22} /></button>
         </header>
 
         <div className="flex-1 space-y-4 overflow-y-auto p-4">
-          <div className="flex gap-2" role="group" aria-label={u("Turi")}>
-            <button className={chip(kind === "thought")} aria-pressed={kind === "thought"} onClick={() => setKind("thought")}>{u("Fikr")}</button>
-            <button className={chip(kind === "short")} aria-pressed={kind === "short"} onClick={() => setKind("short")}>Short</button>
-          </div>
+          {!edit && (
+            <div className="flex gap-2" role="group" aria-label={u("Turi")}>
+              <button className={chip(kind === "thought")} aria-pressed={kind === "thought"} onClick={() => setKind("thought")}>{u("Fikr")}</button>
+              <button className={chip(kind === "short")} aria-pressed={kind === "short"} onClick={() => setKind("short")}>Short</button>
+            </div>
+          )}
 
           <div className="flex flex-wrap gap-2" role="group" aria-label={u("Yo‘nalish")}>
             {(Object.keys(CATEGORY_LABEL) as Category[]).map((c) => (
@@ -64,19 +98,49 @@ export function Composer({ onClose }: { onClose: () => void }) {
           )}
           <textarea value={body} onChange={(e) => setBody(e.target.value)} maxLength={kind === "thought" ? 8000 : 280}
             aria-label={kind === "thought" ? u("Matn") : u("Qisqa matn")}
-            placeholder={kind === "thought" ? u("Matn (abzaslar orasiga bo‘sh qator qoldiring)") : u("Qisqa fikr (1–2 jumla)")}
-            className={`${field} ${kind === "thought" ? "min-h-[220px]" : "min-h-[120px]"} resize-none`} />
+            placeholder={kind === "thought" ? u("Matn (abzaslar orasiga bo‘sh qator qoldiring)") : u("Qisqa fikr yoki video izohi")}
+            className={`${field} ${kind === "thought" ? "min-h-[220px]" : "min-h-[110px]"} resize-none`} />
 
           {kind === "short" && (
-            <div className="flex flex-wrap gap-2" role="group" aria-label={u("Fon rangi")}>
-              {TONES.map(([t, label]) => <button key={t} className={chip(tone === t)} aria-pressed={tone === t} onClick={() => setTone(t)}>{u(label)}</button>)}
-            </div>
+            <>
+              <div className="rounded-2xl border border-line p-3">
+                <input ref={picker} type="file" accept="video/mp4,video/webm,video/quicktime" className="sr-only" aria-label={u("Video tanlash")}
+                  onChange={(e) => { pick(e.target.files?.[0]); e.target.value = ""; }} />
+                <div className="flex items-center gap-3">
+                  <button className="flex min-h-[44px] items-center gap-2 rounded-xl bg-sand px-4 text-[13px] font-semibold" onClick={() => picker.current?.click()}>
+                    <Film size={18} /> {hasVideo ? u("Videoni almashtirish") : u("Video tanlash")}
+                  </button>
+                  {hasVideo && (
+                    <button className="min-h-[44px] px-2 text-[13px] text-clay" onClick={() => { setFile(null); setVideo(null); }}>{u("Olib tashlash")}</button>
+                  )}
+                </div>
+                <p className="mt-2 text-[12px] text-muted">
+                  {file ? `${file.name} · ${mb(file.size)} MB` : video ? u("Hozirgi video saqlanadi.") : u("MP4, vertikal 9:16, 720p, 10–20 soniya, 5–8 MB tavsiya etiladi.")}
+                </p>
+                {file && file.size > 15 * 1024 * 1024 && (
+                  <p className="mt-1 text-[12px] text-clay">{u("Fayl katta: trafik tez tugaydi. Siqib yuklash tavsiya etiladi.")}</p>
+                )}
+                {progress !== null && (
+                  <div className="mt-2 h-1.5 rounded-full bg-sand" role="progressbar" aria-valuenow={progress} aria-valuemin={0} aria-valuemax={100}>
+                    <div className="h-1.5 rounded-full bg-clay" style={{ width: `${progress}%` }} />
+                  </div>
+                )}
+                {fileError && <p role="alert" className="mt-2 text-[13px] text-clay">{fileError}</p>}
+              </div>
+              {!hasVideo && (
+                <div className="flex flex-wrap gap-2" role="group" aria-label={u("Fon rangi")}>
+                  {TONES.map(([t, label]) => <button key={t} className={chip(tone === t)} aria-pressed={tone === t} onClick={() => setTone(t)}>{u(label)}</button>)}
+                </div>
+              )}
+            </>
           )}
 
-          <label className="flex min-h-[44px] items-center gap-2 text-[13px] text-muted">
-            <input type="checkbox" checked={already} onChange={(e) => setAlready(e.target.checked)} className="h-5 w-5" />
-            {u("Matn allaqachon yangi alifboda (o‘girmasin)")}
-          </label>
+          {!edit && (
+            <label className="flex min-h-[44px] items-center gap-2 text-[13px] text-muted">
+              <input type="checkbox" checked={already} onChange={(e) => setAlready(e.target.checked)} className="h-5 w-5" />
+              {u("Matn allaqachon yangi alifboda (o‘girmasin)")}
+            </label>
+          )}
 
           {changed && (
             <div className="rounded-2xl bg-sand p-3 text-[14px]" aria-live="polite">
@@ -89,7 +153,7 @@ export function Composer({ onClose }: { onClose: () => void }) {
 
         <div className="border-t border-line p-4 pb-[calc(16px+env(safe-area-inset-bottom,0px))]">
           <button className="min-h-[48px] w-full rounded-2xl bg-clay font-bold text-onclay disabled:opacity-50" disabled={!valid || busy} onClick={submit}>
-            {u("Joylash")}
+            {busy && progress !== null ? `${u("Yuklanmoqda")} ${progress}%` : edit ? u("Saqlash") : u("Joylash")}
           </button>
         </div>
       </div>

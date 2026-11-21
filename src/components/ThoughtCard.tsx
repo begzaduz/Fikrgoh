@@ -1,6 +1,7 @@
 import { Bookmark, Heart } from "lucide-react";
 import type { Thought } from "../lib/api";
 import { useApp } from "../store";
+import { AdminMenu } from "./AdminMenu";
 
 export const CATEGORY_LABEL = { fikr: "Fikr", mindset: "Mindset", madaniyat: "Madaniyat" } as const;
 
@@ -20,9 +21,14 @@ export function ReactionBar({ t }: { t: Thought }) {
 }
 
 export function ThoughtCard({ t, onOpen }: { t: Thought; onOpen: () => void }) {
-  const { c, u } = useApp();
+  const { c, u, canWrite, setComposer, remove } = useApp();
   return (
-    <article className="mt-3.5 rounded-[20px] bg-sand p-[18px]">
+    <article className="relative mt-3.5 rounded-[20px] bg-sand p-[18px]">
+      {canWrite && (
+        <div className="absolute right-2 top-2">
+          <AdminMenu onEdit={() => setComposer({ mode: "edit", kind: "thought", id: t.id, category: t.category, title: t.title, body: t.body })} onDelete={() => remove("thought", t.id)} />
+        </div>
+      )}
       <button className="block w-full text-left" onClick={onOpen}>
         <span className="text-[12px] font-semibold uppercase tracking-[1.5px] text-clay">{u(CATEGORY_LABEL[t.category])}</span>
         <h3 className="mt-1.5 font-serif text-[21px] font-semibold leading-snug">{c(t.title)}</h3>

@@ -15,9 +15,8 @@ const TABS = [
 ] as const;
 
 export default function App() {
-  const { status, loginError, notice, u, canWrite } = useApp();
+  const { status, loginError, notice, u, canWrite, composer, setComposer } = useApp();
   const [tab, setTab] = useState<Tab>("home");
-  const [writing, setWriting] = useState(false);
 
   if (status === "loading") return <p className="p-8 text-muted">…</p>;
   if (status === "unconfigured")
@@ -50,12 +49,12 @@ export default function App() {
         ))}
       </nav>
       {canWrite && tab !== "profile" && (
-        <button onClick={() => setWriting(true)} aria-label={u("Yangi fikr")}
+        <button onClick={() => setComposer({ mode: "new" })} aria-label={u("Yangi fikr")}
           className="absolute bottom-[calc(76px+env(safe-area-inset-bottom,0px))] right-4 z-40 flex h-14 w-14 items-center justify-center rounded-full bg-clay text-onclay shadow-lg">
           <Plus size={26} />
         </button>
       )}
-      <AnimatePresence>{writing && <Composer onClose={() => setWriting(false)} />}</AnimatePresence>
+      <AnimatePresence>{composer && <Composer key={composer.mode === "edit" ? `${composer.kind}-${composer.id}` : "new"} state={composer} onClose={() => setComposer(null)} />}</AnimatePresence>
       {notice && <div role="status" className="fixed left-1/2 top-20 z-[60] -translate-x-1/2 rounded-full bg-ink px-4 py-2 text-[13px] font-semibold text-paper">{notice}</div>}
     </div>
   );

@@ -1,14 +1,14 @@
 // @vitest-environment jsdom
 // Frontend + kirish jarayoni: soxta Telegram va soxta Supabase javoblari bilan.
 import { describe, it, expect, vi, beforeAll, afterEach } from "vitest";
-import { render, screen, waitFor, fireEvent, cleanup } from "@testing-library/react";
+import { render, screen, waitFor, fireEvent, cleanup, within } from "@testing-library/react";
 
 const b64 = (o: object) => Buffer.from(JSON.stringify(o)).toString("base64url");
 const jwt = `${b64({ alg: "HS256", typ: "JWT" })}.${b64({ sub: "u1", role: "authenticated", aud: "authenticated", exp: Math.floor(Date.now() / 1000) + 3600, session_id: "s1" })}.sig`;
 const USER = { id: "u1", aud: "authenticated", role: "authenticated", email: "tg1@x", app_metadata: {}, user_metadata: {}, created_at: "2026-01-01" };
 const DAILY = { day: "2026-11-21", done: 0, streak: 0, points: 0, level: 0, levelFrom: 0, levelTo: 100,
   questions: [0, 1, 2, 3, 4].map((i) => ({ index: i, text: `Savol ${i}?`, answer: null })) };
-const FEED = [{ id: 1, category: "fikr", title: "Töğri savol", body: "Matn", read_minutes: 1, created_at: "2026-11-21", likes: 2, liked: false, saved: false }];
+const FEED = [{ id: 1, category: "fikr", title: "Töğri savol", body: "Matn matn matn matn matn matn matn", read_minutes: 1, created_at: "2026-11-21", likes: 2, liked: false, saved: false }];
 const calls: string[] = [];
 const writes: Array<{ url: string; body: any }> = [];
 afterEach(cleanup);
@@ -21,7 +21,9 @@ beforeAll(() => {
   window.fetch = vi.fn(async (input: any, init?: any) => {
     const url = String(input?.url ?? input);
     calls.push(`${init?.method ?? "GET"} ${url.replace("https://x.supabase.co", "")}`);
-    if (init?.method === "POST" && url.includes("/rest/v1/") && init.body) writes.push({ url, body: JSON.parse(init.body) });
+    const m = init?.method as string | undefined;
+    if ((m === "POST" || m === "PATCH" || m === "DELETE") && url.includes("/rest/v1/")) writes.push({ url: `${m} ${url}`, body: init.body ? JSON.parse(init.body) : null });
+    if ((m === "PATCH" || m === "DELETE") && url.includes("/rest/v1/")) return json([{ id: 1 }]);
     if (url.includes("/functions/v1/swift-processor")) return json({ access_token: jwt, refresh_token: "r" });
     if (url.includes("/auth/v1/user")) return json(USER);
     if (url.includes("/rpc/feed")) return json(FEED);
@@ -65,11 +67,54 @@ describe("Fikrnoma", () => {
     fireEvent.change(screen.getByLabelText("Matn"), { target: { value: "Shoshilinch fikr: bu yigirma belgidan ko‘p matn." } });
     fireEvent.click(screen.getByRole("button", { name: /Joyla[sş]/ }));
 
-    await waitFor(() => expect(writes.some((w) => w.url.includes("/rest/v1/thoughts"))).toBe(true));
-    const w = writes.find((x) => x.url.includes("/rest/v1/thoughts"))!;
+    await waitFor(() => expect(writes.some((w) => w.url.startsWith("POST") && w.url.includes("/rest/v1/thoughts"))).toBe(true));
+    const w = writes.find((x) => x.url.startsWith("POST") && x.url.includes("/rest/v1/thoughts"))!;
     expect(w.body.title).toBe("Töğri savol");
     expect(w.body.body).toBe("Şoşilinç fikr: bu yigirma belgidan köp matn.");
     expect(w.body.category).toBe("fikr");
     expect(w.body.author_id).toBe("u1");
+  });
+
+  it("admin fikrni tahrirlaydi va o‘chiradi (tasdiqlash bilan)", async () => {
+    const { AppProvider } = await import("../src/store");
+    const { default: App } = await import("../src/App");
+    render(<AppProvider><App /></AppProvider>);
+    await waitFor(() => expect(screen.getByText("Töğri savol")).toBeTruthy(), { timeout: 4000 });
+
+    // Tahrirlash
+    fireEvent.click(screen.getByRole("button", { name: "Amallar" }));
+    fireEvent.click(screen.getByRole("button", { name: /Tahrirla[sş]/ }));
+    const title = (await screen.findByLabelText("Sarlavha")) as HTMLInputElement;
+    expect(title.value).toBe("Töğri savol");                       // mavjud matn yangi alifboda to‘ldirilgan
+    fireEvent.change(title, { target: { value: "Yangi sarlavha" } });
+    fireEvent.click(within(screen.getByRole("dialog")).getByRole("button", { name: /^Saqla[sş]$/ }));
+    await waitFor(() => expect(writes.some((w) => w.url.startsWith("PATCH") && w.url.includes("id=eq.1"))).toBe(true));
+    expect(writes.find((w) => w.url.startsWith("PATCH"))!.body.title).toBe("Yangi sarlavha");
+    await waitFor(() => expect(screen.queryByLabelText("Sarlavha")).toBeNull());
+
+    // O‘chirish: tasdiqlanmaguncha so‘rov yuborilmaydi
+    fireEvent.click(screen.getByRole("button", { name: "Amallar" }));
+    fireEvent.click(screen.getByRole("button", { name: /Ö[çc]iri[sş]/ }));
+    expect(writes.some((w) => w.url.startsWith("DELETE"))).toBe(false);
+    fireEvent.click(screen.getByRole("button", { name: /Ha, ö[çc]iri[sş]/ }));
+    await waitFor(() => expect(writes.some((w) => w.url.startsWith("DELETE") && w.url.includes("id=eq.1"))).toBe(true));
+  });
+
+  it("video: juda katta yoki video bo‘lmagan fayl rad etiladi", async () => {
+    const { AppProvider } = await import("../src/store");
+    const { default: App } = await import("../src/App");
+    render(<AppProvider><App /></AppProvider>);
+    await waitFor(() => expect(screen.getByText("Bugungi 5 savol")).toBeTruthy(), { timeout: 4000 });
+    fireEvent.click(screen.getByRole("button", { name: "Yangi fikr" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Short" }));
+
+    const input = screen.getByLabelText(/Video tanla[sş]/) as HTMLInputElement;
+    const big = new File(["x"], "katta.mp4", { type: "video/mp4" });
+    Object.defineProperty(big, "size", { value: 60 * 1024 * 1024 });
+    fireEvent.change(input, { target: { files: [big] } });
+    expect((await screen.findByRole("alert")).textContent).toMatch(/juda katta/);
+
+    fireEvent.change(input, { target: { files: [new File(["x"], "a.png", { type: "image/png" })] } });
+    await waitFor(() => expect(screen.getByRole("alert").textContent).toMatch(/Faqat video/));
   });
 });

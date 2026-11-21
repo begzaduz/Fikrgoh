@@ -6,9 +6,16 @@ import { haptic, tg } from "./lib/tg";
 
 type Status = "loading" | "ready" | "guest" | "unconfigured";
 type Alpha = "new" | "old";
+/** id bo‘lsa tahrirlash, bo‘lmasa yangi joylash. */
 export type PublishInput =
-  | { kind: "thought"; category: api.Category; title: string; body: string }
-  | { kind: "short"; category: api.Category; quote: string; tone: api.Short["tone"] };
+  | { kind: "thought"; id?: number; category: api.Category; title: string; body: string }
+  | { kind: "short"; id?: number; category: api.Category; quote: string; tone: api.Short["tone"]; videoUrl: string | null; oldVideoUrl?: string | null };
+
+export type ComposerState =
+  | null
+  | { mode: "new" }
+  | { mode: "edit"; kind: "thought"; id: number; category: api.Category; title: string; body: string }
+  | { mode: "edit"; kind: "short"; id: number; category: api.Category; quote: string; tone: api.Short["tone"]; video_url: string | null };
 
 type Store = {
   status: Status;
@@ -30,6 +37,9 @@ type Store = {
   changeAlphabet: (a: Alpha) => void;
   canWrite: boolean;
   publish: (p: PublishInput) => Promise<boolean>;
+  remove: (kind: "thought" | "short", id: number) => Promise<void>;
+  composer: ComposerState;
+  setComposer: (c: ComposerState) => void;
 };
 
 const Ctx = createContext<Store>(null!);
@@ -44,6 +54,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [answers, setAnswers] = useState<api.MyAnswer[]>([]);
   const [notice, setNotice] = useState("");
   const [loginError, setLoginError] = useState("");
+  const [composer, setComposer] = useState<ComposerState>(null);
   const timer = useRef<number>();
 
   const alphabet: Alpha = profile?.alphabet ?? "new";
@@ -118,26 +129,51 @@ export function AppProvider({ children }: { children: ReactNode }) {
     if (!profile || !canWrite) return false;
     try {
       if (p.kind === "thought") {
-        await api.createThought(profile.id, p);
+        const body = { category: p.category, title: p.title, body: p.body };
+        if (p.id) await api.updateThought(p.id, body);
+        else await api.createThought(profile.id, body);
         setThoughts(await api.getFeed());
       } else {
-        await api.createShort(p);
+        const body = { category: p.category, quote: p.quote, tone: p.tone, video_url: p.videoUrl };
+        if (p.id) await api.updateShort(p.id, body);
+        else await api.createShort(body);
+        if (p.oldVideoUrl && p.oldVideoUrl !== p.videoUrl) void api.removeVideo(p.oldVideoUrl);
         setShorts(await api.getShorts());
       }
       haptic.ok();
-      flash("Joylandi");
+      flash(p.id ? "Saqlandi" : "Joylandi");
       return true;
     } catch (e) {
       haptic.err();
-      flash(`Joylab bo‘lmadi${e instanceof Error ? ": " + e.message : ""}`.slice(0, 120));
+      flash(`Saqlab bo‘lmadi${e instanceof Error ? ": " + e.message : ""}`.slice(0, 140));
       return false;
     }
   };
 
+  const remove: Store["remove"] = async (kind, id) => {
+    if (!canWrite) return;
+    try {
+      if (kind === "thought") {
+        await api.deleteThought(id);
+        setThoughts((v) => v.filter((x) => x.id !== id));
+      } else {
+        const video = shorts.find((x) => x.id === id)?.video_url ?? null;
+        await api.deleteShort(id);
+        void api.removeVideo(video);
+        setShorts((v) => v.filter((x) => x.id !== id));
+      }
+      haptic.ok();
+      flash("O‘chirildi");
+    } catch (e) {
+      haptic.err();
+      flash(`O‘chirib bo‘lmadi${e instanceof Error ? ": " + e.message : ""}`.slice(0, 140));
+    }
+  };
+
   const value = useMemo<Store>(
-    () => ({ status, loginError, profile, alphabet, u, c, thoughts, shorts, daily, answers, notice, search, react, answer, changeAlphabet, canWrite, publish }),
+    () => ({ status, loginError, profile, alphabet, u, c, thoughts, shorts, daily, answers, notice, search, react, answer, changeAlphabet, canWrite, publish, remove, composer, setComposer }),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [status, loginError, profile, alphabet, u, c, thoughts, shorts, daily, answers, notice, canWrite],
+    [status, loginError, profile, alphabet, u, c, thoughts, shorts, daily, answers, notice, canWrite, composer],
   );
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 }
