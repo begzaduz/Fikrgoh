@@ -1,4 +1,4 @@
-import { supabase } from "./supabase";
+import { API_URL, supabase } from "./supabase";
 import { tg } from "./tg";
 
 export type Category = "fikr" | "mindset" | "madaniyat";
@@ -28,7 +28,7 @@ export async function login(): Promise<{ ok: boolean; error?: string }> {
   const key = import.meta.env.VITE_SUPABASE_ANON_KEY as string;
   let res: Response;
   try {
-    res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/swift-processor`, {
+    res = await fetch(`${API_URL}/functions/v1/swift-processor`, {
       method: "POST",
       headers: { "Content-Type": "application/json", apikey: key, Authorization: `Bearer ${key}` },
       body: JSON.stringify(body),
