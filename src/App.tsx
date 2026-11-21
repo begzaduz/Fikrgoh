@@ -25,6 +25,7 @@ export default function App() {
         <p>{u("Kirish amalga oshmadi.")}</p>
         {loginError && <p className="mt-3 break-words text-muted">{loginError}</p>}
         <p className="mt-3 text-muted">{u("Fikrnoma'ni Telegram ichida oching.")}</p>
+        <p className="mt-6 text-[12px] text-muted">v {__BUILD__}</p>
       </div>
     );
 
