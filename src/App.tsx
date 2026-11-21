@@ -13,14 +13,20 @@ const TABS = [
 ] as const;
 
 export default function App() {
-  const { status, notice, u } = useApp();
+  const { status, loginError, notice, u } = useApp();
   const [tab, setTab] = useState<Tab>("home");
 
   if (status === "loading") return <p className="p-8 text-muted">…</p>;
   if (status === "unconfigured")
     return <p className="p-8 text-sm">VITE_SUPABASE_URL va VITE_SUPABASE_ANON_KEY sozlanmagan (.env.example'ga qarang).</p>;
   if (status === "guest")
-    return <p className="p-8 text-sm">{u("Fikrnoma'ni Telegram ichida oching.")}</p>;
+    return (
+      <div className="p-8 text-sm">
+        <p>{u("Kirish amalga oshmadi.")}</p>
+        {loginError && <p className="mt-3 break-words text-muted">{loginError}</p>}
+        <p className="mt-3 text-muted">{u("Fikrnoma'ni Telegram ichida oching.")}</p>
+      </div>
+    );
 
   return (
     <div className="mx-auto flex h-full max-w-[560px] flex-col">

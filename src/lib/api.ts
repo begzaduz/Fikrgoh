@@ -18,16 +18,24 @@ const must = <T>(r: { data: T | null; error: { message: string } | null }): T =>
 };
 
 /** Telegram initData bilan kiradi (sinov rejimida: DEV_AUTH yoqilgan bo‘lsa, dev foydalanuvchi bilan). */
-export async function login(): Promise<boolean> {
+export async function login(): Promise<{ ok: boolean; error?: string }> {
   const { data } = await supabase.auth.getSession();
-  if (data.session) return true;
+  if (data.session) return { ok: true };
   const initData = tg()?.initData;
   const body = initData ? { initData } : import.meta.env.DEV ? { dev: { telegramId: 100001, firstName: "Bekzod" } } : null;
-  if (!body) return false;
+  if (!body) return { ok: false, error: "Telegram ma’lumoti (initData) kelmadi" };
   const res = await supabase.functions.invoke("swift-processor", { body });
-  if (res.error || !res.data?.access_token) return false;
+  if (res.error || !res.data?.access_token) {
+    let detail = res.error?.message ?? "javobda token yo‘q";
+    const ctx = (res.error as { context?: Response } | null)?.context;
+    if (ctx && typeof ctx.json === "function") {
+      const j = await ctx.json().catch(() => null);
+      detail = `${ctx.status}: ${j?.error ?? j?.message ?? detail}`;
+    }
+    return { ok: false, error: detail };
+  }
   const set = await supabase.auth.setSession({ access_token: res.data.access_token, refresh_token: res.data.refresh_token });
-  return !set.error;
+  return set.error ? { ok: false, error: set.error.message } : { ok: true };
 }
 
 export const getProfile = async () => must(await supabase.from("profiles").select("id, first_name, username, role, alphabet").single()) as Profile;

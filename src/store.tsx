@@ -9,6 +9,7 @@ type Alpha = "new" | "old";
 
 type Store = {
   status: Status;
+  loginError: string;
   profile: api.Profile | null;
   alphabet: Alpha;
   /** Interfeys matni: manba ESKI alifboda yoziladi, ko‘rsatishda tanlangan alifboga o‘giriladi. */
@@ -37,6 +38,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [daily, setDaily] = useState<api.Daily | null>(null);
   const [answers, setAnswers] = useState<api.MyAnswer[]>([]);
   const [notice, setNotice] = useState("");
+  const [loginError, setLoginError] = useState("");
   const timer = useRef<number>();
 
   const alphabet: Alpha = profile?.alphabet ?? "new";
@@ -54,7 +56,11 @@ export function AppProvider({ children }: { children: ReactNode }) {
     tg()?.expand();
     if (!configured) return setStatus("unconfigured");
     (async () => {
-      if (!(await api.login())) return setStatus("guest");
+      const l = await api.login();
+      if (!l.ok) {
+        setLoginError(l.error ?? "");
+        return setStatus("guest");
+      }
       const [p, f, s, d, a] = await Promise.allSettled([api.getProfile(), api.getFeed(), api.getShorts(), api.getDaily(), api.getAnswers()]);
       if (p.status === "fulfilled") setProfile(p.value);
       if (f.status === "fulfilled") setThoughts(f.value);
@@ -103,9 +109,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
   };
 
   const value = useMemo<Store>(
-    () => ({ status, profile, alphabet, u, c, thoughts, shorts, daily, answers, notice, search, react, answer, changeAlphabet }),
+    () => ({ status, loginError, profile, alphabet, u, c, thoughts, shorts, daily, answers, notice, search, react, answer, changeAlphabet }),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [status, profile, alphabet, u, c, thoughts, shorts, daily, answers, notice],
+    [status, loginError, profile, alphabet, u, c, thoughts, shorts, daily, answers, notice],
   );
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 }
