@@ -24,7 +24,7 @@ export async function login(): Promise<boolean> {
   const initData = tg()?.initData;
   const body = initData ? { initData } : import.meta.env.DEV ? { dev: { telegramId: 100001, firstName: "Bekzod" } } : null;
   if (!body) return false;
-  const res = await supabase.functions.invoke("telegram-auth", { body });
+  const res = await supabase.functions.invoke("swift-processor", { body });
   if (res.error || !res.data?.access_token) return false;
   const set = await supabase.auth.setSession({ access_token: res.data.access_token, refresh_token: res.data.refresh_token });
   return !set.error;
