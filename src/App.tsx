@@ -8,7 +8,7 @@ import { useApp } from "./store";
 type Tab = "home" | "shorts" | "profile";
 const TABS = [
   { id: "home", label: "Bosh sahifa", Icon: HomeIcon },
-  { id: "shorts", label: "Shorts", Icon: Compass },
+  { id: "shorts", label: "Shorts", Icon: Compass, raw: true },
   { id: "profile", label: "Profil", Icon: UserRound },
 ] as const;
 
@@ -38,11 +38,11 @@ export default function App() {
         {tab === "home" ? <Home /> : tab === "shorts" ? <Shorts /> : <Profile />}
       </main>
       <nav className="flex border-t border-line bg-paper px-2 pb-[calc(6px+env(safe-area-inset-bottom,0px))] pt-1.5">
-        {TABS.map(({ id, label, Icon }) => (
+        {TABS.map(({ id, label, Icon, ...rest }) => (
           <button key={id} onClick={() => setTab(id)} aria-current={tab === id ? "page" : undefined}
             className={`flex min-h-[48px] flex-1 flex-col items-center gap-0.5 text-[12px] font-semibold ${tab === id ? "text-clay" : "text-muted"}`}>
             <Icon size={20} />
-            {u(label)}
+            {"raw" in rest ? label : u(label)}
           </button>
         ))}
       </nav>
