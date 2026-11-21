@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { AnimatePresence } from "framer-motion";
-import { Compass, Home as HomeIcon, Plus, UserRound } from "lucide-react";
+import { Home as HomeIcon, Plus, UserRound } from "lucide-react";
 import { Composer } from "./components/Composer";
 import { Home } from "./pages/Home";
 import { Profile } from "./pages/Profile";
@@ -8,10 +8,20 @@ import { Shorts } from "./pages/Shorts";
 import { useApp } from "./store";
 
 type Tab = "home" | "shorts" | "profile";
+
+/** Shorts belgisi: vertikal (9:16) ekran ichida "play". Faol holatda ichi to‘ladi. */
+function ShortsIcon({ size = 26, active = false }: { size?: number; active?: boolean }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.9} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <rect x="6" y="2.5" width="12" height="19" rx="3.2" fill={active ? "currentColor" : "none"} fillOpacity={active ? 0.18 : 0} />
+      <path d="M10.5 9.2v5.6l4.6-2.8z" fill={active ? "currentColor" : "none"} />
+    </svg>
+  );
+}
 const TABS = [
-  { id: "home", label: "Bosh sahifa", Icon: HomeIcon },
-  { id: "shorts", label: "Shorts", Icon: Compass, raw: true },
-  { id: "profile", label: "Profil", Icon: UserRound },
+  { id: "home", label: "Bosh sahifa" },
+  { id: "shorts", label: "Shorts", raw: true },
+  { id: "profile", label: "Profil" },
 ] as const;
 
 export default function App() {
@@ -40,13 +50,17 @@ export default function App() {
         {tab === "home" ? <Home /> : tab === "shorts" ? <Shorts /> : <Profile />}
       </main>
       <nav className="flex border-t border-line bg-paper px-2 pb-[calc(6px+env(safe-area-inset-bottom,0px))] pt-1.5">
-        {TABS.map(({ id, label, Icon, ...rest }) => (
-          <button key={id} onClick={() => setTab(id)} aria-current={tab === id ? "page" : undefined}
-            className={`flex min-h-[48px] flex-1 flex-col items-center gap-0.5 text-[12px] font-semibold ${tab === id ? "text-clay" : "text-muted"}`}>
-            <Icon size={20} />
-            {"raw" in rest ? label : u(label)}
-          </button>
-        ))}
+        {TABS.map((t) => {
+          const on = tab === t.id;
+          const name = "raw" in t ? t.label : u(t.label);
+          return (
+            <button key={t.id} onClick={() => setTab(t.id)} aria-label={name} title={name} aria-current={on ? "page" : undefined}
+              className={`flex min-h-[52px] flex-1 flex-col items-center justify-center gap-1 ${on ? "text-clay" : "text-muted"}`}>
+              {t.id === "home" ? <HomeIcon size={26} strokeWidth={on ? 2.3 : 1.8} /> : t.id === "shorts" ? <ShortsIcon active={on} /> : <UserRound size={26} strokeWidth={on ? 2.3 : 1.8} />}
+              <span className={`h-1 w-1 rounded-full ${on ? "bg-clay" : "bg-transparent"}`} aria-hidden="true" />
+            </button>
+          );
+        })}
       </nav>
       {canWrite && tab !== "profile" && (
         <button onClick={() => setComposer({ mode: "new" })} aria-label={u("Yangi fikr")}
