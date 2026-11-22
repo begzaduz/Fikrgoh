@@ -175,4 +175,14 @@ describe("Fikrnoma", () => {
       expect(screen.queryByRole("alert")).toBeNull();
     } finally { restore(); }
   });
+  it("boshqa Telegram akkaunt ochilganda eski sessiya ishlatilmaydi (qayta kiriladi)", async () => {
+    const { AppProvider } = await import("../src/store");
+    const { default: App } = await import("../src/App");
+    const before = calls.filter((c) => c.startsWith("POST /functions/v1/swift-processor")).length;
+    (window as any).Telegram.WebApp.initData = `auth_date=1&hash=abc&user=${encodeURIComponent(JSON.stringify({ id: 555, first_name: "Boshqa" }))}`;
+    render(<AppProvider><App /></AppProvider>);
+    await waitFor(() => expect(screen.getByText("Bugungi 5 savol")).toBeTruthy(), { timeout: 4000 });
+    const after = calls.filter((c) => c.startsWith("POST /functions/v1/swift-processor")).length;
+    expect(after).toBe(before + 1);
+  });
 });

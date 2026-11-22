@@ -1,5 +1,5 @@
 import { API_URL, supabase } from "./supabase";
-import { tg } from "./tg";
+import { tg, tgUserId } from "./tg";
 
 export type Category = "fikr" | "mindset" | "madaniyat";
 export type Thought = { id: number; category: Category; title: string; body: string; read_minutes: number; created_at: string; likes: number; liked: boolean; saved: boolean };
@@ -20,8 +20,14 @@ const must = <T>(r: { data: T | null; error: { message: string } | null }): T =>
 /** Telegram initData bilan kiradi (sinov rejimida: DEV_AUTH yoqilgan bo‘lsa, dev foydalanuvchi bilan). */
 export async function login(): Promise<{ ok: boolean; error?: string }> {
   const { data } = await supabase.auth.getSession();
-  if (data.session) return { ok: true };
   const initData = tg()?.initData;
+  if (data.session) {
+    // Telegram bir qurilmada bir necha akkaunt uchun bir xil saqlash joyini beradi: sessiya hozir ochayotgan akkauntniki bo‘lishi shart.
+    const want = initData ? tgUserId(initData) : null;
+    const have = Number(data.session.user?.user_metadata?.telegram_id) || null;
+    if (want === null || want === have) return { ok: true };
+    await supabase.auth.signOut({ scope: "local" });
+  }
   const body = initData ? { initData } : import.meta.env.DEV ? { dev: { telegramId: 100001, firstName: "Bekzod" } } : null;
   if (!body) return { ok: false, error: "Telegram ma’lumoti (initData) kelmadi" };
   // Oddiy fetch: faqat funksiya ruxsat bergan sarlavhalar (content-type, apikey, authorization) yuboriladi.

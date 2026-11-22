@@ -17,3 +17,13 @@ export const haptic = {
   ok: () => tg()?.HapticFeedback?.notificationOccurred("success"),
   err: () => tg()?.HapticFeedback?.notificationOccurred("error"),
 };
+
+/** initData ichidan Telegram foydalanuvchi ID'sini oladi (imzoni server tekshiradi; bu faqat sessiya mosligini solishtirish uchun). */
+export function tgUserId(initData: string): number | null {
+  try {
+    const id = JSON.parse(new URLSearchParams(initData).get("user") ?? "")?.id;
+    return typeof id === "number" ? id : null;
+  } catch {
+    return null;
+  }
+}
