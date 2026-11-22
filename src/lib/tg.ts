@@ -2,6 +2,8 @@ type WebApp = {
   initData: string;
   ready: () => void;
   expand: () => void;
+  setHeaderColor?: (c: string) => void;
+  setBackgroundColor?: (c: string) => void;
   HapticFeedback?: { impactOccurred: (s: string) => void; notificationOccurred: (s: string) => void };
   BackButton?: { show: () => void; hide: () => void; onClick: (f: () => void) => void; offClick: (f: () => void) => void };
 };

@@ -3,6 +3,7 @@ import * as api from "./lib/api";
 import { toNew, toOld } from "./lib/alphabet";
 import { configured } from "./lib/supabase";
 import { haptic, tg } from "./lib/tg";
+import { applyTheme, loadTheme, saveTheme, systemDark, type Theme } from "./lib/theme";
 
 type Status = "loading" | "ready" | "guest" | "unconfigured";
 type Alpha = "new" | "old";
@@ -22,6 +23,10 @@ type Store = {
   loginError: string;
   profile: api.Profile | null;
   alphabet: Alpha;
+  theme: Theme;
+  /** Hozir qorong‘i ko‘rinyaptimi ("auto" bo‘lsa tizim sozlamasiga qarab). */
+  dark: boolean;
+  setTheme: (t: Theme) => void;
   /** Interfeys matni: manba ESKI alifboda yoziladi, ko‘rsatishda tanlangan alifboga o‘giriladi. */
   u: (oldSource: string) => string;
   /** Baza matni: KANONIK (yangi) alifboda saqlanadi, kerak bo‘lsa eskiga o‘giriladi. */
@@ -55,6 +60,18 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [loginError, setLoginError] = useState("");
   const [composer, setComposer] = useState<ComposerState>(null);
   const timer = useRef<number>();
+  const [theme, setThemeState] = useState<Theme>(loadTheme);
+  const [sysDark, setSysDark] = useState(systemDark);
+  const dark = theme === "dark" || (theme === "auto" && sysDark);
+  const setTheme = useCallback((t: Theme) => { saveTheme(t); setThemeState(t); }, []);
+  useEffect(() => {
+    const mq = window.matchMedia?.("(prefers-color-scheme: dark)");
+    if (!mq) return;
+    const on = () => setSysDark(mq.matches);
+    mq.addEventListener("change", on);
+    return () => mq.removeEventListener("change", on);
+  }, []);
+  useEffect(() => applyTheme(theme), [theme, sysDark]);
 
   const alphabet: Alpha = profile?.alphabet ?? "new";
   const u = useCallback((s: string) => (alphabet === "old" ? s : toNew(s)), [alphabet]);
@@ -158,9 +175,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
   };
 
   const value = useMemo<Store>(
-    () => ({ status, loginError, profile, alphabet, u, c, thoughts, shorts, stats, markRead, notice, search, react, changeAlphabet, canWrite, publish, remove, composer, setComposer }),
+    () => ({ status, loginError, profile, alphabet, theme, dark, setTheme, u, c, thoughts, shorts, stats, markRead, notice, search, react, changeAlphabet, canWrite, publish, remove, composer, setComposer }),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [status, loginError, profile, alphabet, u, c, thoughts, shorts, stats, markRead, notice, canWrite, composer],
+    [status, loginError, profile, alphabet, theme, dark, setTheme, u, c, thoughts, shorts, stats, markRead, notice, canWrite, composer],
   );
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 }

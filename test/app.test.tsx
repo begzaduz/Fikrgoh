@@ -204,4 +204,24 @@ describe("Fikrnoma", () => {
     expect(screen.getByText(/Mulohaza[cç]i unvoniga yana 3 ta fikr qoldi/)).toBeTruthy();
     expect(screen.getByText("Ç")).toBeTruthy(); // hafta kuni: Chorshanba (yangi alifboda)
   });
+
+  it("tungi/kunduzgi rejim almashadi va saqlanadi", async () => {
+    localStorage.removeItem("fikrnoma-theme");
+    const { AppProvider } = await import("../src/store");
+    const { default: App } = await import("../src/App");
+    render(<AppProvider><App /></AppProvider>);
+    await waitFor(() => expect(screen.getByText("Töğri savol")).toBeTruthy(), { timeout: 4000 });
+
+    fireEvent.click(screen.getByRole("button", { name: "Tungi rejim" }));
+    expect(document.documentElement.dataset.theme).toBe("dark");
+    expect(localStorage.getItem("fikrnoma-theme")).toBe("dark");
+    fireEvent.click(screen.getByRole("button", { name: "Kunduzgi rejim" }));
+    expect(document.documentElement.dataset.theme).toBe("light");
+
+    // Profildagi "Avto" tanlovi qo‘lda tanlovni bekor qiladi
+    fireEvent.click(screen.getByRole("button", { name: "Profil" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Avto" }));
+    expect(document.documentElement.dataset.theme).toBeUndefined();
+    localStorage.removeItem("fikrnoma-theme");
+  });
 });

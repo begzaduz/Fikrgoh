@@ -8,7 +8,8 @@ export default {
         muted: "var(--muted)", clay: "var(--clay)", onclay: "var(--onclay)", sage: "var(--sage)",
         night: "var(--night)", onnight: "var(--onnight)", peach: "#e39a70",
       },
-      fontFamily: { serif: ['"Playfair Display"', "Georgia", "serif"], sans: ["Inter", "system-ui", "sans-serif"] },
+      // serif = uzun matn uchun (Literata), display = logo va sarlavhalar uchun (Playfair Display)
+      fontFamily: { serif: ["Literata", "Georgia", "serif"], display: ['"Playfair Display"', "Georgia", "serif"], sans: ["Inter", "system-ui", "sans-serif"] },
     },
   },
 };

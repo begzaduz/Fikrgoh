@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" role="img" aria-label="Fikrnoma">
+  <rect width="128" height="128" rx="30" fill="#a2461f"/>
+  <g fill="none" stroke="#f3ecdd" stroke-width="11" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M56 98V54C56 41 64 32 80 32"/>
+    <path d="M40 62H74"/>
+  </g>
+  <circle cx="84" cy="96" r="7" fill="#f3ecdd"/>
+</svg>

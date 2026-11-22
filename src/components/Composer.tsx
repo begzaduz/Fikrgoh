@@ -89,7 +89,7 @@ export function Composer({ state, onClose }: { state: Exclude<ComposerState, nul
       initial={{ y: 40, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: 40, opacity: 0 }}>
       <div className="flex h-full w-full max-w-[560px] flex-col">
         <header className="flex items-center justify-between border-b border-line px-4 pb-2 pt-[calc(8px+var(--safe-top))]">
-          <h2 className="font-serif text-xl font-bold">{edit ? u("Tahrirlash") : u("Yangi")}</h2>
+          <h2 className="font-display text-xl font-bold">{edit ? u("Tahrirlash") : u("Yangi")}</h2>
           <button className="flex min-h-[44px] min-w-[44px] items-center justify-center" onClick={onClose} aria-label={u("Yopish")}><X size={22} /></button>
         </header>
 

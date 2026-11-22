@@ -31,7 +31,8 @@ export function ThoughtCard({ t, onOpen }: { t: Thought; onOpen: () => void }) {
       )}
       <button className="block w-full text-left" onClick={onOpen}>
         <span className="text-[12px] font-semibold uppercase tracking-[1.5px] text-clay">{u(CATEGORY_LABEL[t.category])}</span>
-        <h3 className="mt-1.5 font-serif text-[21px] font-semibold leading-snug">{c(t.title)}</h3>
+        <h3 className="mt-1.5 font-display text-[21px] font-semibold leading-snug">{c(t.title)}</h3>
+        <p className="mt-2 line-clamp-2 font-serif text-[15px] leading-relaxed text-muted">{c(t.body).split("\n\n")[0]}</p>
         <span className="mt-2.5 block text-[13px] text-muted">
           {t.read_minutes} {u("daqiqa o‘qish")}
         </span>

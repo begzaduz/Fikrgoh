@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { AnimatePresence } from "framer-motion";
-import { Home as HomeIcon, Plus, UserRound } from "lucide-react";
+import { Home as HomeIcon, Moon, Plus, Sun, UserRound } from "lucide-react";
+import { Logo } from "./components/Logo";
 import { Composer } from "./components/Composer";
 import { Home } from "./pages/Home";
 import { Profile } from "./pages/Profile";
@@ -25,7 +26,7 @@ const TABS = [
 ] as const;
 
 export default function App() {
-  const { status, loginError, notice, u, canWrite, composer, setComposer } = useApp();
+  const { status, loginError, notice, u, canWrite, composer, setComposer, dark, setTheme } = useApp();
   const [tab, setTab] = useState<Tab>("home");
 
   if (status === "loading") return <p className="p-8 text-muted">…</p>;
@@ -43,8 +44,15 @@ export default function App() {
 
   return (
     <div className="relative mx-auto flex h-full max-w-[560px] flex-col">
-      <header className="flex items-center justify-between border-b border-line px-5 pb-2.5 pt-[calc(10px+var(--safe-top))]">
-        <span className="font-serif text-2xl font-bold">fikrnoma<span className="text-clay">.</span></span>
+      <header className="flex items-center justify-between border-b border-line px-5 pb-1.5 pt-[calc(6px+var(--safe-top))]">
+        <span className="flex items-center gap-2.5">
+          <Logo size={30} />
+          <span className="font-display text-2xl font-bold">fikrnoma<span className="text-clay">.</span></span>
+        </span>
+        <button onClick={() => setTheme(dark ? "light" : "dark")} aria-label={dark ? u("Kunduzgi rejim") : u("Tungi rejim")}
+          className="-mr-2 flex h-11 w-11 items-center justify-center rounded-full text-muted">
+          {dark ? <Sun size={22} /> : <Moon size={22} />}
+        </button>
       </header>
       <main className="min-h-0 flex-1 overflow-y-auto">
         {tab === "home" ? <Home /> : tab === "shorts" ? <Shorts /> : <Profile />}
