@@ -3,7 +3,7 @@ import { motion } from "framer-motion";
 import { Film, X } from "lucide-react";
 import { MAX_VIDEO_BYTES, uploadVideo, type Category, type Short } from "../lib/api";
 import { toNew } from "../lib/alphabet";
-import { canPlayVideo } from "../lib/video";
+import { canPlayVideo, inspectMp4 } from "../lib/video";
 import { useApp, type ComposerState } from "../store";
 import { CATEGORY_LABEL } from "./ThoughtCard";
 
@@ -26,6 +26,7 @@ export function Composer({ state, onClose }: { state: Exclude<ComposerState, nul
   const [video, setVideo] = useState<string | null>(edit?.kind === "short" ? edit.video_url : null);
   const [file, setFile] = useState<File | null>(null);
   const [fileError, setFileError] = useState("");
+  const [fileWarn, setFileWarn] = useState("");
   const [progress, setProgress] = useState<number | null>(null);
   const [busy, setBusy] = useState(false);
   const [checking, setChecking] = useState(false);
@@ -38,6 +39,7 @@ export function Composer({ state, onClose }: { state: Exclude<ComposerState, nul
 
   const pick = async (f: File | undefined) => {
     setFileError("");
+    setFileWarn("");
     if (!f) return;
     if (!f.type.startsWith("video/")) return setFileError("Faqat video fayl tanlang (MP4 tavsiya etiladi).");
     if (f.size > MAX_VIDEO_BYTES) return setFileError(`Fayl juda katta (${mb(f.size)} MB). Chegara: 50 MB.`);
@@ -46,6 +48,11 @@ export function Composer({ state, onClose }: { state: Exclude<ComposerState, nul
     const ok = await canPlayVideo(f);
     setChecking(false);
     if (!ok) return setFileError("Bu videoni ochib bo‘lmadi: kodek qo‘llab-quvvatlanmaydi. Uni H.264 + AAC kodekli MP4 qilib qayta eksport qiling.");
+    // Qurilmaga bog‘liq bo‘lmagan tekshiruv: iPhone HEVC'ni ochadi, lekin boshqa qurilmalarda ochilmaydi.
+    const info = await inspectMp4(f);
+    if (info.codec === "hevc" || info.codec === "av1")
+      return setFileError("Bu video HEVC/AV1 kodekda: ko‘p Android va Telegram Desktop'da ochilmaydi. H.264 + AAC kodekli MP4 qilib qayta eksport qiling.");
+    if (info.faststart === false) setFileWarn("Faylda faststart yo‘q: video sekin boshlanishi mumkin. ffmpeg bilan -movflags +faststart qo‘shib qayta saqlang.");
     setFile(f);
   };
 
@@ -132,6 +139,7 @@ export function Composer({ state, onClose }: { state: Exclude<ComposerState, nul
                     <div className="h-1.5 rounded-full bg-clay" style={{ width: `${progress}%` }} />
                   </div>
                 )}
+                {fileWarn && !fileError && <p role="status" className="mt-2 text-[13px] text-muted">{fileWarn}</p>}
                 {fileError && <p role="alert" className="mt-2 text-[13px] text-clay">{u(fileError)}</p>}
               </div>
               {!hasVideo && (
