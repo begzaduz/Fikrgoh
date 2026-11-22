@@ -9,6 +9,7 @@ const USER = { id: "u1", aud: "authenticated", role: "authenticated", email: "tg
 const DAILY = { day: "2026-11-21", done: 0, streak: 0, points: 0, level: 0, levelFrom: 0, levelTo: 100,
   questions: [0, 1, 2, 3, 4].map((i) => ({ index: i, text: `Savol ${i}?`, answer: null })) };
 const FEED = [{ id: 1, category: "fikr", title: "Töğri savol", body: "Matn matn matn matn matn matn matn", read_minutes: 1, created_at: "2026-11-21", likes: 2, liked: false, saved: false }];
+const STATS = { reads: 2, categories: 1, streak: 3, today: true, week: [false, false, true, true, true, false, false], todayIndex: 4, level: 0, levelTo: 5 };
 const calls: string[] = [];
 const writes: Array<{ url: string; body: any }> = [];
 afterEach(cleanup);
@@ -27,6 +28,8 @@ beforeAll(() => {
     if (url.includes("/functions/v1/swift-processor")) return json({ access_token: jwt, refresh_token: "r" });
     if (url.includes("/auth/v1/user")) return json(USER);
     if (url.includes("/rpc/feed")) return json(FEED);
+    if (url.includes("/rpc/get_stats")) return json(STATS);
+    if (url.includes("/rpc/record_read")) return json(null, 204);
     if (url.includes("/rpc/get_daily")) return json(DAILY);
     if (url.includes("/rpc/save_answer")) {
       const idx = JSON.parse(init.body).p_idx;
@@ -181,5 +184,24 @@ describe("Fikrnoma", () => {
     await waitFor(() => expect(screen.getByText("Töğri savol")).toBeTruthy(), { timeout: 4000 });
     const after = calls.filter((c) => c.startsWith("POST /functions/v1/swift-processor")).length;
     expect(after).toBe(before + 1);
+  });
+
+  it("fikr ochilganda o‘qilgani yoziladi, profilda ko‘rsatkichlar chiqadi", async () => {
+    const { AppProvider } = await import("../src/store");
+    const { default: App } = await import("../src/App");
+    render(<AppProvider><App /></AppProvider>);
+    await waitFor(() => expect(screen.getByText("Töğri savol")).toBeTruthy(), { timeout: 4000 });
+
+    fireEvent.click(screen.getByText("Töğri savol"));
+    await waitFor(() => expect(calls.some((c) => c.includes("/rpc/record_read"))).toBe(true));
+
+    fireEvent.click(screen.getByRole("button", { name: "Profil" }));
+    await waitFor(() => expect(screen.getByText("Haftalik iz")).toBeTruthy());
+    expect(screen.getByText(/Unvon: Kuzatuv[cç]i/)).toBeTruthy();
+    expect(screen.getByText("Belgilar")).toBeTruthy();
+    expect(screen.getByText("Ketma-ket kun")).toBeTruthy();
+    expect(screen.getByText(/Birin[cç]i sahifa/)).toBeTruthy();
+    expect(screen.getByText(/Mulohaza[cç]i unvoniga yana 3 ta fikr qoldi/)).toBeTruthy();
+    expect(screen.getByText("Ç")).toBeTruthy(); // hafta kuni: Chorshanba (yangi alifboda)
   });
 });

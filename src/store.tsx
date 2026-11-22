@@ -28,6 +28,9 @@ type Store = {
   c: (canonical: string) => string;
   thoughts: api.Thought[];
   shorts: api.Short[];
+  stats: api.Stats | null;
+  /** Fikr ochilganda chaqiriladi: o‘qilganini yozadi va profil ko‘rsatkichlarini yangilaydi. */
+  markRead: (id: number) => void;
   notice: string;
   search: (q: string) => void;
   react: (t: api.Thought, kind: "like" | "save") => void;
@@ -47,6 +50,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [profile, setProfile] = useState<api.Profile | null>(null);
   const [thoughts, setThoughts] = useState<api.Thought[]>([]);
   const [shorts, setShorts] = useState<api.Short[]>([]);
+  const [stats, setStats] = useState<api.Stats | null>(null);
   const [notice, setNotice] = useState("");
   const [loginError, setLoginError] = useState("");
   const [composer, setComposer] = useState<ComposerState>(null);
@@ -72,10 +76,11 @@ export function AppProvider({ children }: { children: ReactNode }) {
         setLoginError(l.error ?? "");
         return setStatus("guest");
       }
-      const [p, f, s] = await Promise.allSettled([api.getProfile(), api.getFeed(), api.getShorts()]);
+      const [p, f, s, st] = await Promise.allSettled([api.getProfile(), api.getFeed(), api.getShorts(), api.getStats()]);
       if (p.status === "fulfilled") setProfile(p.value);
       if (f.status === "fulfilled") setThoughts(f.value);
       if (s.status === "fulfilled") setShorts(s.value);
+      if (st.status === "fulfilled") setStats(st.value);
       setStatus("ready");
     })();
   }, []);
@@ -90,13 +95,16 @@ export function AppProvider({ children }: { children: ReactNode }) {
     haptic.tap();
     setThoughts((v) => v.map((x) => (x.id === t.id ? patch(x) : x)));
     api.setReaction(t.id, kind, on)
-      .then(() => {})
       .catch(() => {
         setThoughts((v) => v.map((x) => (x.id === t.id ? t : x)));
         haptic.err();
         flash("Amal bajarilmadi");
       });
   };
+
+  const markRead = useCallback((id: number) => {
+    api.recordRead(id).then(() => api.getStats().then(setStats)).catch(() => {});
+  }, []);
 
   const changeAlphabet: Store["changeAlphabet"] = (a) => {
     setProfile((p) => (p ? { ...p, alphabet: a } : p));
@@ -150,9 +158,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
   };
 
   const value = useMemo<Store>(
-    () => ({ status, loginError, profile, alphabet, u, c, thoughts, shorts, notice, search, react, changeAlphabet, canWrite, publish, remove, composer, setComposer }),
+    () => ({ status, loginError, profile, alphabet, u, c, thoughts, shorts, stats, markRead, notice, search, react, changeAlphabet, canWrite, publish, remove, composer, setComposer }),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [status, loginError, profile, alphabet, u, c, thoughts, shorts, notice, canWrite, composer],
+    [status, loginError, profile, alphabet, u, c, thoughts, shorts, stats, markRead, notice, canWrite, composer],
   );
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 }

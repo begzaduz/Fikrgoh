@@ -5,7 +5,7 @@ import { tg } from "../lib/tg";
 import { useApp } from "../store";
 
 export function Home() {
-  const { thoughts, search, u, c } = useApp();
+  const { thoughts, search, markRead, u, c } = useApp();
   const [openId, setOpenId] = useState<number | null>(null);
   const [q, setQ] = useState("");
   const first = useRef(true);
@@ -17,6 +17,9 @@ export function Home() {
     const id = window.setTimeout(() => search(q.trim()), 350);
     return () => window.clearTimeout(id);
   }, [q, search]);
+
+  // Fikr ochilganda o‘qilgan deb yoziladi (profil: ketma-ket kunlar, belgilar).
+  useEffect(() => { if (openId !== null) markRead(openId); }, [openId, markRead]);
 
   // Telegram "Orqaga" tugmasi
   useEffect(() => {

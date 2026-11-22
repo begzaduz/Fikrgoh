@@ -1,6 +1,6 @@
 # Fikrnoma
 
-Telegram Mini App: fikrlar lentasi, kunlik 5 savol, yumshoq streak, fikr darajasi, qisqa fikrlar (Shorts).
+Telegram Mini App: fikrlar lentasi, qisqa fikrlar (Shorts), profil (o‘qilgan fikrlar, ketma-ket kunlar, haftalik iz, unvon, belgilar). Kunlik savollar vaqtincha olib tashlangan (baza va SQL saqlangan).
 Matnlar **yangi o‘zbek lotin alifbosida** (Ö Ğ Ş Ç); foydalanuvchi sozlamalarda eski alifboga (O‘ G‘ Sh Ch) o‘tkaza oladi.
 
 **Stek:** React + TypeScript + Vite, Tailwind, Framer Motion · Supabase (Postgres, RLS, Edge Functions). Alohida server kerak emas.

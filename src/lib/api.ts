@@ -10,6 +10,7 @@ export type Daily = {
   done: number; streak: number; points: number; level: 0 | 1 | 2; levelFrom: number; levelTo: number;
 };
 export type MyAnswer = { day: string; idx: number; question: string; body: string };
+export type Stats = { reads: number; categories: number; streak: number; today: boolean; week: boolean[]; todayIndex: number; level: 0 | 1 | 2; levelTo: number | null };
 export type Profile = { id: string; first_name: string; username: string | null; role: "reader" | "admin"; alphabet: "new" | "old" };
 
 const must = <T>(r: { data: T | null; error: { message: string } | null }): T => {
@@ -66,6 +67,12 @@ export const getDaily = async () => must(await supabase.rpc("get_daily")) as Dai
 export const saveAnswer = async (index: number, body: string) => must(await supabase.rpc("save_answer", { p_idx: index, p_body: body })) as Daily;
 export const getAnswers = async () =>
   must(await supabase.from("daily_answers").select("day, idx, question, body").order("day", { ascending: false }).order("idx", { ascending: false }).limit(20)) as MyAnswer[];
+
+export const getStats = async () => must(await supabase.rpc("get_stats")) as Stats;
+export async function recordRead(thoughtId: number) {
+  const r = await supabase.rpc("record_read", { p_thought_id: thoughtId });
+  if (r.error) throw new Error(r.error.message);
+}
 
 export async function setReaction(thoughtId: number, kind: "like" | "save", on: boolean) {
   const table = kind === "like" ? "thought_likes" : "thought_saves";
