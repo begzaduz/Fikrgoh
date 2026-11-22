@@ -1,6 +1,5 @@
 import { useEffect, useRef, useState } from "react";
 import { ArrowLeft, Search } from "lucide-react";
-import { DailyCard } from "../components/DailyCard";
 import { CATEGORY_LABEL, ReactionBar, ThoughtCard } from "../components/ThoughtCard";
 import { tg } from "../lib/tg";
 import { useApp } from "../store";
@@ -47,8 +46,7 @@ export function Home() {
 
   return (
     <div className="p-4">
-      <DailyCard />
-      <label className="mt-5 flex min-h-[44px] items-center gap-2 rounded-2xl border border-line bg-sand px-3.5">
+      <label className="flex min-h-[44px] items-center gap-2 rounded-2xl border border-line bg-sand px-3.5">
         <Search size={18} className="text-muted" />
         <input value={q} onChange={(e) => setQ(e.target.value)} placeholder={u("Fikrlardan qidirish")} aria-label={u("Qidirish")}
           className="w-full bg-transparent text-base text-ink placeholder:text-muted" />

@@ -40,27 +40,24 @@ beforeAll(() => {
 });
 
 describe("Fikrnoma", () => {
-  it("Telegram ichida kiradi, lentani va kunlik savollarni ko‘rsatadi, javob saqlaydi", async () => {
+  it("Telegram ichida kiradi va lentani ko‘rsatadi (kunlik savollarsiz)", async () => {
     const { AppProvider } = await import("../src/store");
     const { default: App } = await import("../src/App");
     render(<AppProvider><App /></AppProvider>);
 
-    await waitFor(() => expect(screen.getByText("Bugungi 5 savol")).toBeTruthy(), { timeout: 4000 });
+    await waitFor(() => expect(screen.getByText("Töğri savol")).toBeTruthy(), { timeout: 4000 });
     expect(screen.getByText("Töğri savol")).toBeTruthy();                       // fikrlar lentasi
     expect(calls.some((c) => c.startsWith("POST /functions/v1/swift-processor"))).toBe(true);
 
-    fireEvent.click(screen.getByText(/Bo[sş]la[sş]/)); // "Boshlash" → yangi alifboda
-    await waitFor(() => expect(screen.getByLabelText(/Javobingiz/)).toBeTruthy());
-    fireEvent.change(screen.getByLabelText(/Javobingiz/), { target: { value: "Javob" } });
-    fireEvent.click(screen.getByRole("button", { name: /Javobni saqla[sş]/ }));
-    await waitFor(() => expect(calls.some((c) => c.includes("/rpc/save_answer"))).toBe(true));
+    expect(screen.queryByText(/Bugungi 5 savol|Bo[sş]la[sş]/)).toBeNull();      // kunlik savollar olib tashlangan
+    expect(calls.some((c) => c.includes("/rpc/get_daily"))).toBe(false);
   });
 
   it("admin eski alifboda yozadi, matn yangi alifboda joylanadi", async () => {
     const { AppProvider } = await import("../src/store");
     const { default: App } = await import("../src/App");
     render(<AppProvider><App /></AppProvider>);
-    await waitFor(() => expect(screen.getByText("Bugungi 5 savol")).toBeTruthy(), { timeout: 4000 });
+    await waitFor(() => expect(screen.getByText("Töğri savol")).toBeTruthy(), { timeout: 4000 });
 
     fireEvent.click(screen.getByRole("button", { name: "Yangi fikr" }));
     fireEvent.change(await screen.findByLabelText("Sarlavha"), { target: { value: "To‘g‘ri savol" } });
@@ -104,7 +101,7 @@ describe("Fikrnoma", () => {
     const { AppProvider } = await import("../src/store");
     const { default: App } = await import("../src/App");
     render(<AppProvider><App /></AppProvider>);
-    await waitFor(() => expect(screen.getByText("Bugungi 5 savol")).toBeTruthy(), { timeout: 4000 });
+    await waitFor(() => expect(screen.getByText("Töğri savol")).toBeTruthy(), { timeout: 4000 });
     fireEvent.click(screen.getByRole("button", { name: "Yangi fikr" }));
     fireEvent.click(await screen.findByRole("button", { name: "Short" }));
 
@@ -141,7 +138,7 @@ describe("Fikrnoma", () => {
     const { AppProvider } = await import("../src/store");
     const { default: App } = await import("../src/App");
     render(<AppProvider><App /></AppProvider>);
-    await waitFor(() => expect(screen.getByText("Bugungi 5 savol")).toBeTruthy(), { timeout: 4000 });
+    await waitFor(() => expect(screen.getByText("Töğri savol")).toBeTruthy(), { timeout: 4000 });
     fireEvent.click(screen.getByRole("button", { name: "Yangi fikr" }));
     fireEvent.click(await screen.findByRole("button", { name: "Short" }));
     return screen.getByLabelText(/Video tanla[sş]/) as HTMLInputElement;
@@ -181,7 +178,7 @@ describe("Fikrnoma", () => {
     const before = calls.filter((c) => c.startsWith("POST /functions/v1/swift-processor")).length;
     (window as any).Telegram.WebApp.initData = `auth_date=1&hash=abc&user=${encodeURIComponent(JSON.stringify({ id: 555, first_name: "Boshqa" }))}`;
     render(<AppProvider><App /></AppProvider>);
-    await waitFor(() => expect(screen.getByText("Bugungi 5 savol")).toBeTruthy(), { timeout: 4000 });
+    await waitFor(() => expect(screen.getByText("Töğri savol")).toBeTruthy(), { timeout: 4000 });
     const after = calls.filter((c) => c.startsWith("POST /functions/v1/swift-processor")).length;
     expect(after).toBe(before + 1);
   });
