@@ -112,6 +112,9 @@ export const BUCKET = "shorts-media";
 export const MAX_VIDEO_BYTES = 50 * 1024 * 1024; // Supabase bepul tarifidagi bitta fayl chegarasi
 const DIRECT = import.meta.env.VITE_SUPABASE_URL as string;
 
+/** Bazada saqlangan to‘g‘ridan-to‘g‘ri video havolasini o‘z proksimiz (/sb) orqali ochiladigan havolaga o‘giradi (supabase.co yopiq tarmoqlar uchun zaxira). */
+export const proxied = (url: string) => (DIRECT && url.startsWith(DIRECT) ? API_URL + url.slice(DIRECT.length) : url);
+
 /** Videoni Storage'ga yuklaydi (foiz bilan). Avval to‘g‘ridan-to‘g‘ri, tarmoq xatosi bo‘lsa Vercel proksi orqali. Ochiq havolani qaytaradi. */
 export async function uploadVideo(file: File, onProgress: (pct: number) => void): Promise<string> {
   const ext = file.type === "video/webm" ? "webm" : file.type === "video/quicktime" ? "mov" : "mp4";

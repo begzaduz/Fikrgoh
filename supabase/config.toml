@@ -1,5 +1,6 @@
 project_id = "svihzrgndgnketairtog"
 
 # Kirish funksiyasi JWT'siz chaqiriladi: Telegram initData imzosini funksiyaning o‘zi tekshiradi.
-[functions.telegram-auth]
+# Funksiya nomi ilova kodidagi (src/lib/api.ts) va Supabase'dagi deploy nomi bilan bir xil: swift-processor.
+[functions.swift-processor]
 verify_jwt = false

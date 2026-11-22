@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { Volume2, VolumeX } from "lucide-react";
 import { AdminMenu } from "../components/AdminMenu";
 import { CATEGORY_LABEL } from "../components/ThoughtCard";
-import type { Short } from "../lib/api";
+import { proxied, type Short } from "../lib/api";
 import { useApp } from "../store";
 
 const TONE = {
@@ -18,6 +18,17 @@ function ShortCard({ s }: { s: Short }) {
   const vid = useRef<HTMLVideoElement>(null);
   const [muted, setMuted] = useState(true);
   const [failed, setFailed] = useState(false);
+  const [src, setSrc] = useState(s.video_url);
+
+  // Video almashtirilsa (tahrirlash), holat yangilanadi.
+  useEffect(() => { setSrc(s.video_url); setFailed(false); }, [s.video_url]);
+
+  // Avval to‘g‘ridan-to‘g‘ri havola; ochilmasa (supabase.co yopiq tarmoq) o‘z proksimiz (/sb) orqali, u ham ochilmasa xato.
+  const onVideoError = () => {
+    const alt = s.video_url ? proxied(s.video_url) : null;
+    if (alt && alt !== src) setSrc(alt);
+    else setFailed(true);
+  };
 
   // Faqat ko‘rinib turgan video ijro bo‘ladi (trafik va batareyani tejaydi).
   useEffect(() => {
@@ -27,14 +38,14 @@ function ShortCard({ s }: { s: Short }) {
     const io = new IntersectionObserver(([e]) => { if (e && e.intersectionRatio > 0.6) void v.play().catch(() => {}); else v.pause(); }, { threshold: [0, 0.6, 1] });
     io.observe(el);
     return () => io.disconnect();
-  }, [s.video_url]);
+  }, [src, failed]);
 
-  const hasVideo = !!s.video_url && !failed;
+  const hasVideo = !!src && !failed;
   return (
     <section ref={box} className={`relative flex h-full snap-start flex-col justify-end gap-3 p-7 ${hasVideo ? "bg-black text-white" : TONE[s.tone]}`}>
       {hasVideo && (
         <>
-          <video ref={vid} src={s.video_url!} muted={muted} loop playsInline preload="metadata" onError={() => setFailed(true)} className="absolute inset-0 h-full w-full object-cover" />
+          <video key={src} ref={vid} src={src!} muted={muted} loop playsInline preload="metadata" onError={onVideoError} className="absolute inset-0 h-full w-full object-cover" />
           <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/10 to-black/30" aria-hidden="true" />
         </>
       )}

@@ -69,7 +69,7 @@ export default function App() {
         </button>
       )}
       <AnimatePresence>{composer && <Composer key={composer.mode === "edit" ? `${composer.kind}-${composer.id}` : "new"} state={composer} onClose={() => setComposer(null)} />}</AnimatePresence>
-      {notice && <div role="status" className="fixed left-1/2 top-20 z-[60] -translate-x-1/2 rounded-full bg-ink px-4 py-2 text-[13px] font-semibold text-paper">{notice}</div>}
+      {notice && <div role="status" className="fixed left-1/2 top-20 z-[60] -translate-x-1/2 rounded-full bg-ink px-4 py-2 text-[13px] font-semibold text-paper">{u(notice)}</div>}
     </div>
   );
 }

@@ -62,7 +62,7 @@ export function DailyCard() {
                 </button>
                 <button className="min-h-[46px] px-4 text-muted" onClick={() => setOpen(false)}>{u("Keyinroq")}</button>
               </div>
-              {notice && <p role="status" className="mt-2 text-[13px] text-clay">{notice}</p>}
+              {notice && <p role="status" className="mt-2 text-[13px] text-clay">{u(notice)}</p>}
             </motion.div>
           </motion.div>
         )}

@@ -117,4 +117,62 @@ describe("Fikrnoma", () => {
     fireEvent.change(input, { target: { files: [new File(["x"], "a.png", { type: "image/png" })] } });
     await waitFor(() => expect(screen.getByRole("alert").textContent).toMatch(/Faqat video/));
   });
+  // jsdom videoni yuklamaydi: src berilganda tanlangan hodisani o‘zimiz yuboramiz.
+  const stubMedia = (event: "error" | "loadeddata", width: number) => {
+    const srcDesc = Object.getOwnPropertyDescriptor(HTMLMediaElement.prototype, "src");
+    const widthDesc = Object.getOwnPropertyDescriptor(HTMLVideoElement.prototype, "videoWidth");
+    const cu = URL.createObjectURL, ru = URL.revokeObjectURL;
+    Object.defineProperty(HTMLMediaElement.prototype, "src", {
+      configurable: true,
+      get: () => "",
+      set(this: HTMLMediaElement) { setTimeout(() => this.dispatchEvent(new Event(event)), 0); },
+    });
+    Object.defineProperty(HTMLVideoElement.prototype, "videoWidth", { configurable: true, get: () => width });
+    URL.createObjectURL = () => "blob:test";
+    URL.revokeObjectURL = () => {};
+    return () => {
+      if (srcDesc) Object.defineProperty(HTMLMediaElement.prototype, "src", srcDesc);
+      if (widthDesc) Object.defineProperty(HTMLVideoElement.prototype, "videoWidth", widthDesc);
+      URL.createObjectURL = cu;
+      URL.revokeObjectURL = ru;
+    };
+  };
+  const openShortComposer = async () => {
+    const { AppProvider } = await import("../src/store");
+    const { default: App } = await import("../src/App");
+    render(<AppProvider><App /></AppProvider>);
+    await waitFor(() => expect(screen.getByText("Bugungi 5 savol")).toBeTruthy(), { timeout: 4000 });
+    fireEvent.click(screen.getByRole("button", { name: "Yangi fikr" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Short" }));
+    return screen.getByLabelText(/Video tanla[sş]/) as HTMLInputElement;
+  };
+
+  it("video: kodek ochilmasa (brauzer xato bersa) rad etiladi", async () => {
+    const restore = stubMedia("error", 0);
+    try {
+      const input = await openShortComposer();
+      fireEvent.change(input, { target: { files: [new File(["x"], "hevc.mp4", { type: "video/mp4" })] } });
+      await waitFor(() => expect(screen.getByRole("alert").textContent).toMatch(/kodek/), { timeout: 3000 });
+      expect(screen.queryByText(/hevc\.mp4/)).toBeNull();
+    } finally { restore(); }
+  });
+
+  it("video: faqat ovoz ochilsa (tasvir kengligi 0) rad etiladi", async () => {
+    const restore = stubMedia("loadeddata", 0);
+    try {
+      const input = await openShortComposer();
+      fireEvent.change(input, { target: { files: [new File(["x"], "audio-only.mp4", { type: "video/mp4" })] } });
+      await waitFor(() => expect(screen.getByRole("alert").textContent).toMatch(/kodek/), { timeout: 3000 });
+    } finally { restore(); }
+  });
+
+  it("video: ochiladigan video qabul qilinadi", async () => {
+    const restore = stubMedia("loadeddata", 720);
+    try {
+      const input = await openShortComposer();
+      fireEvent.change(input, { target: { files: [new File(["x"], "yaxshi.mp4", { type: "video/mp4" })] } });
+      expect(await screen.findByText(/yaxshi\.mp4/, undefined, { timeout: 3000 })).toBeTruthy();
+      expect(screen.queryByRole("alert")).toBeNull();
+    } finally { restore(); }
+  });
 });

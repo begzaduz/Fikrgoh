@@ -3,6 +3,7 @@ import { motion } from "framer-motion";
 import { Film, X } from "lucide-react";
 import { MAX_VIDEO_BYTES, uploadVideo, type Category, type Short } from "../lib/api";
 import { toNew } from "../lib/alphabet";
+import { canPlayVideo } from "../lib/video";
 import { useApp, type ComposerState } from "../store";
 import { CATEGORY_LABEL } from "./ThoughtCard";
 
@@ -27,6 +28,7 @@ export function Composer({ state, onClose }: { state: Exclude<ComposerState, nul
   const [fileError, setFileError] = useState("");
   const [progress, setProgress] = useState<number | null>(null);
   const [busy, setBusy] = useState(false);
+  const [checking, setChecking] = useState(false);
   const picker = useRef<HTMLInputElement>(null);
 
   const conv = (s: string) => (already ? s : toNew(s));
@@ -34,11 +36,16 @@ export function Composer({ state, onClose }: { state: Exclude<ComposerState, nul
   const valid = kind === "thought" ? title.trim().length >= 3 && body.trim().length >= 20 : body.trim().length >= 5 || hasVideo;
   const changed = !already && (conv(title) !== title || conv(body) !== body);
 
-  const pick = (f: File | undefined) => {
+  const pick = async (f: File | undefined) => {
     setFileError("");
     if (!f) return;
     if (!f.type.startsWith("video/")) return setFileError("Faqat video fayl tanlang (MP4 tavsiya etiladi).");
     if (f.size > MAX_VIDEO_BYTES) return setFileError(`Fayl juda katta (${mb(f.size)} MB). Chegara: 50 MB.`);
+    // Ochilmaydigan kodekli video bazaga tushib qolmasligi uchun yuklashdan oldin tekshiramiz.
+    setChecking(true);
+    const ok = await canPlayVideo(f);
+    setChecking(false);
+    if (!ok) return setFileError("Bu videoni ochib bo‘lmadi: kodek qo‘llab-quvvatlanmaydi. Uni H.264 + AAC kodekli MP4 qilib qayta eksport qiling.");
     setFile(f);
   };
 
@@ -105,7 +112,7 @@ export function Composer({ state, onClose }: { state: Exclude<ComposerState, nul
             <>
               <div className="rounded-2xl border border-line p-3">
                 <input ref={picker} type="file" accept="video/mp4,video/webm,video/quicktime" className="sr-only" aria-label={u("Video tanlash")}
-                  onChange={(e) => { pick(e.target.files?.[0]); e.target.value = ""; }} />
+                  onChange={(e) => { void pick(e.target.files?.[0]); e.target.value = ""; }} />
                 <div className="flex items-center gap-3">
                   <button className="flex min-h-[44px] items-center gap-2 rounded-xl bg-sand px-4 text-[13px] font-semibold" onClick={() => picker.current?.click()}>
                     <Film size={18} /> {hasVideo ? u("Videoni almashtirish") : u("Video tanlash")}
@@ -115,7 +122,7 @@ export function Composer({ state, onClose }: { state: Exclude<ComposerState, nul
                   )}
                 </div>
                 <p className="mt-2 text-[12px] text-muted">
-                  {file ? `${file.name} · ${mb(file.size)} MB` : video ? u("Hozirgi video saqlanadi.") : u("MP4, vertikal 9:16, 720p, 10–20 soniya, 5–8 MB tavsiya etiladi.")}
+                  {checking ? u("Video tekshirilmoqda...") : file ? `${file.name} · ${mb(file.size)} MB` : video ? u("Hozirgi video saqlanadi.") : u("MP4, vertikal 9:16, 720p, 10–20 soniya, 5–8 MB tavsiya etiladi.")}
                 </p>
                 {file && file.size > 15 * 1024 * 1024 && (
                   <p className="mt-1 text-[12px] text-clay">{u("Fayl katta: trafik tez tugaydi. Siqib yuklash tavsiya etiladi.")}</p>
@@ -125,7 +132,7 @@ export function Composer({ state, onClose }: { state: Exclude<ComposerState, nul
                     <div className="h-1.5 rounded-full bg-clay" style={{ width: `${progress}%` }} />
                   </div>
                 )}
-                {fileError && <p role="alert" className="mt-2 text-[13px] text-clay">{fileError}</p>}
+                {fileError && <p role="alert" className="mt-2 text-[13px] text-clay">{u(fileError)}</p>}
               </div>
               {!hasVideo && (
                 <div className="flex flex-wrap gap-2" role="group" aria-label={u("Fon rangi")}>
@@ -152,7 +159,7 @@ export function Composer({ state, onClose }: { state: Exclude<ComposerState, nul
         </div>
 
         <div className="border-t border-line p-4 pb-[calc(16px+env(safe-area-inset-bottom,0px))]">
-          <button className="min-h-[48px] w-full rounded-2xl bg-clay font-bold text-onclay disabled:opacity-50" disabled={!valid || busy} onClick={submit}>
+          <button className="min-h-[48px] w-full rounded-2xl bg-clay font-bold text-onclay disabled:opacity-50" disabled={!valid || busy || checking} onClick={submit}>
             {busy && progress !== null ? `${u("Yuklanmoqda")} ${progress}%` : edit ? u("Saqlash") : u("Joylash")}
           </button>
         </div>
