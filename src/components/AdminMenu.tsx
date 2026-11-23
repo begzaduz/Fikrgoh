@@ -27,7 +27,7 @@ export function AdminMenu({ onEdit, onDelete, light = false }: { onEdit: () => v
       {confirm && (
         <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/55 p-6" role="alertdialog" aria-modal="true" aria-label={u("O‘chirishni tasdiqlang")}>
           <div className="w-full max-w-[340px] rounded-3xl bg-paper p-5 text-ink">
-            <h3 className="font-display text-xl font-bold">{u("O‘chirilsinmi?")}</h3>
+            <h3 className="text-xl font-bold">{u("O‘chirilsinmi?")}</h3>
             <p className="mt-2 text-sm text-muted">{u("Buni qaytarib bo‘lmaydi.")}</p>
             <div className="mt-4 flex gap-2.5">
               <button className="min-h-[46px] flex-1 rounded-2xl bg-clay font-bold text-onclay" onClick={() => { setConfirm(false); onDelete(); }}>{u("Ha, o‘chirish")}</button>

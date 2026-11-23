@@ -34,6 +34,11 @@ type Store = {
   thoughts: api.Thought[];
   shorts: api.Short[];
   stats: api.Stats | null;
+  history: api.HistoryItem[];
+  /** Boshqa sahifadan ("Saqlanganlar", markaziy tugma) fikrni ochish so‘rovi: Bosh sahifa o‘qib, tozalaydi. */
+  pendingOpen: number | null;
+  requestOpen: (id: number) => void;
+  clearOpen: () => void;
   /** Fikr ochilganda chaqiriladi: o‘qilganini yozadi va profil ko‘rsatkichlarini yangilaydi. */
   markRead: (id: number) => void;
   notice: string;
@@ -57,6 +62,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [thoughts, setThoughts] = useState<api.Thought[]>([]);
   const [shorts, setShorts] = useState<api.Short[]>([]);
   const [stats, setStats] = useState<api.Stats | null>(null);
+  const [history, setHistory] = useState<api.HistoryItem[]>([]);
+  const [pendingOpen, setPendingOpen] = useState<number | null>(null);
+  const requestOpen = useCallback((id: number) => setPendingOpen(id), []);
+  const clearOpen = useCallback(() => setPendingOpen(null), []);
   const [notice, setNotice] = useState("");
   const [loginError, setLoginError] = useState("");
   const [composer, setComposer] = useState<ComposerState>(null);
@@ -94,11 +103,12 @@ export function AppProvider({ children }: { children: ReactNode }) {
         setLoginError(l.error ?? "");
         return setStatus("guest");
       }
-      const [p, f, s, st] = await Promise.allSettled([api.getProfile(), api.getFeed(), api.getShorts(), api.getStats()]);
+      const [p, f, s, st, h] = await Promise.allSettled([api.getProfile(), api.getFeed(), api.getShorts(), api.getStats(), api.getHistory()]);
       if (p.status === "fulfilled") setProfile(p.value);
       if (f.status === "fulfilled") setThoughts(f.value);
       if (s.status === "fulfilled") setShorts(s.value);
       if (st.status === "fulfilled") setStats(st.value);
+      if (h.status === "fulfilled") setHistory(h.value);
       setStatus("ready");
     })();
   }, []);
@@ -132,7 +142,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   };
 
   const markRead = useCallback((id: number) => {
-    api.recordRead(id).then(() => api.getStats().then(setStats)).catch(() => {});
+    api.recordRead(id).then(() => Promise.all([api.getStats().then(setStats), api.getHistory().then(setHistory)])).catch(() => {});
   }, []);
 
   const changeAlphabet: Store["changeAlphabet"] = (a) => {
@@ -187,9 +197,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
   };
 
   const value = useMemo<Store>(
-    () => ({ status, loginError, profile, alphabet, theme, dark, setTheme, u, c, thoughts, shorts, stats, markRead, notice, search, react, reactShort, changeAlphabet, canWrite, publish, remove, composer, setComposer }),
+    () => ({ status, loginError, profile, alphabet, theme, dark, setTheme, u, c, thoughts, shorts, stats, history, pendingOpen, requestOpen, clearOpen, markRead, notice, search, react, reactShort, changeAlphabet, canWrite, publish, remove, composer, setComposer }),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [status, loginError, profile, alphabet, theme, dark, setTheme, u, c, thoughts, shorts, stats, markRead, notice, canWrite, composer],
+    [status, loginError, profile, alphabet, theme, dark, setTheme, u, c, thoughts, shorts, stats, history, pendingOpen, requestOpen, clearOpen, markRead, notice, canWrite, composer],
   );
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 }

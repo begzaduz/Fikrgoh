@@ -7,10 +7,10 @@ import { share } from "../lib/tg";
 import { useApp } from "../store";
 
 const TONE = {
-  sand: "bg-[#e7e8e1] text-[#0f1312]",
-  sage: "bg-[#0a6e68] text-[#f4f4ef]",
-  ink: "bg-[#0f1312] text-[#f4f4ef]",
-  clay: "bg-[#d9411e] text-[#fff8f2]",
+  sand: "bg-gradient-to-b from-[#3a46a8] to-[#141b52] text-white",
+  sage: "bg-gradient-to-b from-[#11877c] to-[#0b2c3b] text-white",
+  ink: "bg-gradient-to-b from-[#1a2158] to-[#070a1f] text-white",
+  clay: "bg-gradient-to-b from-[#ffc27a] via-[#f0867a] to-[#7a3f8f] text-[#1b1038]",
 } as const;
 
 /** Tugmalar fonining rangi: matn rangidan olinadi, shuning uchun ham yorug‘, ham qorong‘i kartada ko‘rinadi. */
@@ -36,7 +36,7 @@ function ShortCard({ s }: { s: Short }) {
   }, [s.video_url]);
 
   const hasVideo = !!s.video_url && !failed;
-  const btn = "flex h-12 w-12 items-center justify-center border border-current";
+  const btn = "flex h-12 w-12 items-center justify-center rounded-full bg-white/15";
   const label = (cat: string) => u(CATEGORY_LABEL[cat as keyof typeof CATEGORY_LABEL]);
   return (
     <section ref={box} className={`relative flex h-full snap-start flex-col px-6 pb-8 pt-6 ${hasVideo ? "bg-black text-white" : TONE[s.tone]}`}>
@@ -46,12 +46,12 @@ function ShortCard({ s }: { s: Short }) {
           <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/10 to-black/30" aria-hidden="true" />
         </>
       )}
-      <span className="relative font-mono text-[11px] uppercase tracking-[0.16em] opacity-90">{label(s.category)}</span>
+      <span className="relative text-[12px] font-semibold uppercase tracking-[0.16em] opacity-85">{label(s.category)}</span>
       {s.video_url && failed && <p className="relative mt-2 text-[12px] opacity-80">{u("Video ochilmadi.")}</p>}
 
       {/* Matnli kartada matn o‘rtada, videoda pastda (o‘ng tomonda tugmalar uchun joy qoldiriladi). */}
       <div className={`relative flex flex-1 pr-16 ${hasVideo ? "items-end" : "items-center"}`}>
-        {s.quote && <p className={`font-display leading-[0.98] text-balance ${s.quote.length > 140 ? "text-[30px]" : s.quote.length > 70 ? "text-[38px]" : "text-[50px]"}`}>{c(s.quote)}</p>}
+        {s.quote && <p className={`font-display leading-[1.12] text-balance ${s.quote.length > 140 ? "text-[26px]" : s.quote.length > 70 ? "text-[32px]" : "text-[40px]"}`}>{c(s.quote)}</p>}
       </div>
 
       <div className="absolute bottom-8 right-4 z-10 flex flex-col items-center gap-4">
@@ -59,7 +59,7 @@ function ShortCard({ s }: { s: Short }) {
           <button className={btn} style={s.liked ? strong : soft} aria-label={u("Yoqtirish")} aria-pressed={s.liked} onClick={() => reactShort(s)}>
             <Heart size={24} fill={s.liked ? "currentColor" : "none"} />
           </button>
-          <span className="min-h-[16px] font-mono text-[12px] opacity-90">{s.likes > 0 ? s.likes : ""}</span>
+          <span className="min-h-[16px] text-[12px] font-semibold opacity-90">{s.likes > 0 ? s.likes : ""}</span>
         </div>
         <button className={btn} style={soft} aria-label={u("Ulashish")} onClick={() => share(s.quote ? c(s.quote) : "fikrnomiya", s.id)}>
           <Send size={22} />

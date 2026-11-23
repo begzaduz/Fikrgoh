@@ -3,26 +3,37 @@
 @tailwind utilities;
 
 :root {
-  --paper: #f4f4ef; --ink: #0f1312; --sand: #e7e8e1; --line: #c9cdc4; --muted: #566059;
-  --clay: #0a6e68; --onclay: #f4f4ef; --sage: #0a6e68; --night: #0f1312; --onnight: #f4f4ef;
+  --paper: #f1f4ff; --ink: #141b45; --sand: rgba(255,255,255,.72); --line: rgba(20,27,69,.12); --muted: #566090;
+  --clay: #3f46d6; --onclay: #ffffff; --spark: #c77700;
+  --glass-a: rgba(255,255,255,.92); --glass-b: rgba(255,255,255,.55);
+  --bg: radial-gradient(70% 45% at 88% -5%, rgba(45,212,191,.28), transparent 60%), radial-gradient(90% 55% at 8% 0%, rgba(129,140,248,.38), transparent 62%), linear-gradient(180deg, #e3e9ff 0%, #eef1ff 50%, #f5f7ff 100%);
   --safe-top: calc(env(safe-area-inset-top, 0px) + var(--tg-content-safe-area-inset-top, 0px));
   color-scheme: light;
 }
 /* Rejim: "auto" (data-theme yo‘q) tizim sozlamasiga ergashadi; "light"/"dark" qo‘lda tanlanadi. */
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
-    --paper: #0c1110; --ink: #e9eae3; --sand: #151b1a; --line: #2b3532; --muted: #8f9d98;
-    --clay: #3fcdb9; --onclay: #0c1110; --sage: #3fcdb9; --night: #060909; --onnight: #e9eae3; color-scheme: dark;
+    --paper: #0d1236; --ink: #eef1ff; --sand: rgba(255,255,255,.07); --line: rgba(255,255,255,.13); --muted: #a3acd4;
+    --clay: #7ee8d8; --onclay: #06122b; --spark: #ffc46b;
+    --glass-a: rgba(255,255,255,.11); --glass-b: rgba(255,255,255,.03);
+    --bg: radial-gradient(70% 45% at 88% -5%, rgba(94,234,212,.22), transparent 60%), radial-gradient(90% 55% at 8% 0%, rgba(99,102,241,.5), transparent 62%), linear-gradient(180deg, #171c55 0%, #0b1030 50%, #080b22 100%);
+    color-scheme: dark;
   }
 }
-:root[data-theme="dark"] {
-  --paper: #0c1110; --ink: #e9eae3; --sand: #151b1a; --line: #2b3532; --muted: #8f9d98;
-  --clay: #3fcdb9; --onclay: #0c1110; --sage: #3fcdb9; --night: #060909; --onnight: #e9eae3; color-scheme: dark;
+:root[data-theme="dark"], [data-theme="dark"] {
+  --paper: #0d1236; --ink: #eef1ff; --sand: rgba(255,255,255,.07); --line: rgba(255,255,255,.13); --muted: #a3acd4;
+  --clay: #7ee8d8; --onclay: #06122b; --spark: #ffc46b;
+  --glass-a: rgba(255,255,255,.11); --glass-b: rgba(255,255,255,.03);
+  --bg: radial-gradient(70% 45% at 88% -5%, rgba(94,234,212,.22), transparent 60%), radial-gradient(90% 55% at 8% 0%, rgba(99,102,241,.5), transparent 62%), linear-gradient(180deg, #171c55 0%, #0b1030 50%, #080b22 100%);
+  color-scheme: dark;
 }
 html, body, #root { height: 100%; margin: 0; }
-body { background: var(--paper); color: var(--ink); font-family: Archivo, system-ui, sans-serif; -webkit-font-smoothing: antialiased; transition: background-color .25s, color .25s; }
+body { background: var(--bg) fixed; background-color: var(--paper); color: var(--ink); font-family: Manrope, system-ui, sans-serif; -webkit-font-smoothing: antialiased; }
 button { font: inherit; cursor: pointer; }
 button:focus-visible, textarea:focus-visible, input:focus-visible { outline: 2px solid var(--clay); outline-offset: 2px; }
-/* Sarlavhalar: Archivo'ning eng tor va eng qalin ko‘rinishi */
-.font-display { font-stretch: 70%; font-weight: 800; letter-spacing: -0.01em; }
+/* Sarlavhalar: yengil (300) va keng tartibli; kartalar: shaffof "shisha" */
+.font-display { font-weight: 300; letter-spacing: -0.02em; }
+.glass { background: linear-gradient(160deg, var(--glass-a), var(--glass-b)); border: 1px solid var(--line); }
+.featured { background: linear-gradient(150deg, #5b5bd6 0%, #3b3fa8 48%, #1d8f9b 100%); color: #fff; }
+.no-scrollbar { scrollbar-width: none; } .no-scrollbar::-webkit-scrollbar { display: none; }
 ::selection { background: var(--clay); color: var(--onclay); }

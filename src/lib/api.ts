@@ -86,6 +86,14 @@ export async function setShortLike(shortId: number, on: boolean) {
   if (r.error) throw new Error(r.error.message);
 }
 export const getStats = async () => must(await supabase.rpc("get_stats")) as Stats;
+export type HistoryItem = { day: string; thought_id: number; title: string };
+/** Oxirgi o‘qilgan fikrlar (profil "Tarix" bo‘limi). */
+export async function getHistory(): Promise<HistoryItem[]> {
+  const r = await supabase.from("thought_reads").select("day, thought_id, thoughts(title)").order("day", { ascending: false }).order("thought_id", { ascending: false }).limit(60);
+  if (r.error) throw new Error(r.error.message);
+  type Row = { day: string; thought_id: number; thoughts: { title: string } | { title: string }[] | null };
+  return ((r.data ?? []) as unknown as Row[]).map((x) => ({ day: x.day, thought_id: x.thought_id, title: (Array.isArray(x.thoughts) ? x.thoughts[0]?.title : x.thoughts?.title) ?? "" }));
+}
 export async function recordRead(thoughtId: number) {
   const r = await supabase.rpc("record_read", { p_thought_id: thoughtId });
   if (r.error) throw new Error(r.error.message);

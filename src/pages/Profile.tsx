@@ -1,8 +1,11 @@
+import { useState } from "react";
+import { CalendarDays, Check, ChevronRight } from "lucide-react";
+import { Bars, Wave } from "../components/Charts";
+import { weekDates } from "../lib/today";
 import { useApp } from "../store";
 
 const LEVELS = ["Kuzatuvchi", "Mulohazachi", "Mutafakkir"];
 const DAYS = ["D", "S", "Ch", "P", "J", "Sh", "Y"];
-const mono = "font-mono text-[11px] uppercase tracking-[0.14em]";
 
 /** Belgilar: faqat o‘qish odatiga bog‘liq (XP va bosim yo‘q). Nomlari eski alifboda yoziladi, u() o‘giradi. */
 const BADGES = [
@@ -12,121 +15,132 @@ const BADGES = [
   { id: "three", title: "Uch yo‘nalish", goal: 3, value: (_: number, cats: number) => cats },
 ] as const;
 
-function Section({ title, children }: { title: string; children: React.ReactNode }) {
-  return (
-    <section className="mt-9" aria-label={title}>
-      <h2 className={`border-b border-ink pb-2 text-muted ${mono}`}>{title}</h2>
-      {children}
-    </section>
-  );
-}
+const dm = (day: string) => `${day.slice(8, 10)}.${day.slice(5, 7)}`;
 
 export function Profile() {
-  const { profile, stats, thoughts, alphabet, changeAlphabet, theme, setTheme, u, c } = useApp();
-  const saved = thoughts.filter((t) => t.saved);
+  const { profile, stats, thoughts, history, alphabet, changeAlphabet, theme, setTheme, u, c } = useApp();
+  const [sel, setSel] = useState<number | null>(null);   // tanlangan hafta kuni (null — hammasi)
+  const saved = thoughts.filter((t) => t.saved).length;
   const reads = stats?.reads ?? 0;
   const left = stats?.levelTo ? stats.levelTo - reads : 0;
-  const name = profile?.first_name ?? u("Mehmon");
-  const seg = (on: boolean) => `min-h-[46px] flex-1 px-2 ${mono} ${on ? "bg-ink text-paper" : "text-muted"}`;
-  const group = "mt-4 flex divide-x divide-ink border border-ink";
+  const pct = stats?.levelTo ? Math.min(100, Math.round((reads / stats.levelTo) * 100)) : 100;
+  const dates = stats ? weekDates(stats.todayIndex) : [];
+  const counts = stats ? stats.week.map((on, i) => history.filter((h) => h.day === dates[i]).length || (on ? 1 : 0)) : [];
+  const rows = sel === null ? history.slice(0, 8) : history.filter((h) => h.day === dates[sel]);
+  const seg = (on: boolean) => `min-h-[44px] flex-1 rounded-full px-2 text-[13px] font-semibold ${on ? "bg-clay text-onclay" : "text-muted"}`;
+  const group = "glass mt-3 flex gap-1 rounded-full p-1";
+  const h2 = "text-[18px] font-semibold";
 
   return (
-    <div className="px-5 pb-12 pt-6">
-      <p className={`text-muted ${mono}`}>{u("Profil")}</p>
-      <h1 className="font-display mt-2 break-words text-[64px] leading-[0.88]">{name}</h1>
-      {profile?.username && <p className="mt-3 font-mono text-[12px] text-muted">@{profile.username}</p>}
+    <div className="px-5 pb-10 pt-4">
+      <h1 className="font-display text-[46px] leading-[1.02]">{u("Mening")}<br />{u("yo‘lim")}</h1>
+      <p className="mt-2 text-[14px] text-muted">{profile?.first_name ?? u("Mehmon")}{profile?.username ? ` · @${profile.username}` : ""}</p>
 
       {stats && (
         <>
-          <div className="mt-6 border-y border-ink py-3">
-            <span className={`text-clay ${mono}`}>{u("Unvon")}: {u(LEVELS[stats.level]!)}</span>
-            {stats.levelTo ? (
-              <>
-                <div className="mt-3 h-[3px] bg-line" role="progressbar" aria-valuenow={reads} aria-valuemin={0} aria-valuemax={stats.levelTo}>
-                  <div className="h-[3px] bg-clay" style={{ width: `${Math.min(100, (reads / stats.levelTo) * 100)}%` }} />
-                </div>
-                <p className="mt-2.5 text-[13px] text-muted">{u(LEVELS[stats.level + 1]!)} {u("unvoniga yana")} {left} {u("ta fikr qoldi")}</p>
-              </>
-            ) : (
-              <p className="mt-2.5 text-[13px] text-muted">{u("Eng yuqori unvonga yetdingiz.")}</p>
-            )}
+          <section className="mt-6" aria-label={u("Haftalik iz")}>
+            <div className="flex items-center justify-between">
+              <h2 className={h2}>{u("Haftalik iz")}</h2>
+              <CalendarDays size={22} className="text-muted" aria-hidden="true" />
+            </div>
+            <div className="mt-3 flex gap-1.5" role="group" aria-label={u("Haftalik iz")}>
+              {DAYS.map((d, i) => {
+                const on = sel === i;
+                const now = i === stats.todayIndex;
+                return (
+                  <button key={d} onClick={() => setSel(on ? null : i)} aria-pressed={on}
+                    className={`flex min-h-[58px] flex-1 flex-col items-center justify-center gap-1.5 rounded-full text-[13px] font-semibold ${on ? "bg-clay text-onclay" : "glass text-ink"} ${now && !on ? "ring-1 ring-clay" : ""}`}>
+                    <span>{u(d)}</span>
+                    <span className={`h-1.5 w-1.5 rounded-full ${stats.week[i] ? (on ? "bg-onclay" : "bg-clay") : "bg-transparent"}`} aria-hidden="true" />
+                  </button>
+                );
+              })}
+            </div>
+          </section>
+
+          <div className="mt-4 grid grid-cols-2 gap-3">
+            <div className="featured relative row-span-2 min-h-[240px] overflow-hidden rounded-[28px] p-4">
+              <p className="text-[15px] font-semibold">{u("Keyingi unvon")}</p>
+              <p className="mt-0.5 text-[12px] opacity-75">{stats.levelTo ? u(LEVELS[stats.level + 1]!) : u("Eng yuqori unvon")}</p>
+              <Wave className="absolute inset-x-0 bottom-10 h-24 w-full" />
+              <div className="absolute inset-x-4 bottom-4">
+                <p className="flex items-baseline gap-1.5"><span className="text-[52px] font-semibold leading-none">{stats.levelTo ? left : reads}</span><span className="text-[13px] opacity-80">{u("ta fikr")}</span></p>
+                <p className="mt-1.5 text-[12px] leading-snug opacity-85">
+                  {stats.levelTo ? <>{u(LEVELS[stats.level + 1]!)} {u("unvoniga yana")} {left} {u("ta fikr qoldi")}</> : u("Eng yuqori unvonga yetdingiz.")}
+                </p>
+              </div>
+            </div>
+            <div className="glass relative rounded-[28px] p-4">
+              <p className="text-[15px] font-semibold">{u("Haftalik faollik")}</p>
+              <span className="absolute right-3 top-3 rounded-full bg-sand px-2 py-0.5 text-[11px] font-semibold text-muted">{pct}%</span>
+              <Bars values={counts} className="mt-5 h-12 w-full text-clay" />
+            </div>
+            <div className="glass rounded-[28px] p-4">
+              <p className="text-[15px] font-semibold">{u("Unvon")}</p>
+              <span className="mt-4 inline-block rounded-full bg-sand px-4 py-2 text-[14px] font-semibold text-clay">{u(LEVELS[stats.level]!)}</span>
+            </div>
           </div>
 
-          <div className="grid grid-cols-3 divide-x divide-line border-b border-ink">
-            {[[reads, "O‘qilgan fikrlar"], [saved.length, "Saqlanganlar"], [stats.streak, "Ketma-ket kun"]].map(([n, label], i) => (
-              <div key={label as string} className={`py-5 ${i > 0 ? "pl-4" : ""}`}>
-                <div className="font-display text-[56px] leading-none">{n}</div>
-                <div className={`mt-2.5 text-[10px] leading-tight text-muted ${mono.replace("text-[11px]", "")}`}>{u(label as string)}</div>
+          <div className="glass mt-3 grid grid-cols-3 divide-x divide-[var(--line)] rounded-[26px] py-4">
+            {[[reads, "O‘qilgan fikrlar"], [saved, "Saqlanganlar"], [stats.streak, "Ketma-ket kun"]].map(([n, label]) => (
+              <div key={label as string} className="px-4">
+                <div className="text-[34px] font-semibold leading-none">{n}</div>
+                <div className="mt-2 text-[11px] leading-tight text-muted">{u(label as string)}</div>
               </div>
             ))}
           </div>
 
-          <Section title={u("Bugungi fikr")}>
-            <div className="flex items-baseline justify-between pt-4">
-              <p className="text-[15px]">{stats.today ? u("Bugun o‘qidingiz. Ertaga davom eting.") : u("Bugun bitta fikr o‘qing.")}</p>
-              <span className="font-mono text-[13px] text-muted">{stats.today ? 1 : 0}/1</span>
+          <section className="mt-7" aria-label={u("Tarix")}>
+            <div className="flex items-baseline justify-between">
+              <h2 className={h2}>{u("Tarix")}</h2>
+              <button className="text-[13px] text-muted" onClick={() => setSel(null)}>{u("Hammasi")}</button>
             </div>
-          </Section>
+            <div className="mt-3 grid gap-2.5">
+              {rows.length === 0 && <p className="glass rounded-[20px] p-4 text-[14px] text-muted">{u("Bu kunda fikr o‘qilmagan.")}</p>}
+              {rows.map((h) => (
+                <div key={`${h.day}-${h.thought_id}`} className="glass flex items-center gap-3 rounded-[20px] px-4 py-3.5">
+                  <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-clay text-onclay"><Check size={15} strokeWidth={3} /></span>
+                  <span className="min-w-0 flex-1 truncate text-[15px]">{c(h.title)}</span>
+                  <span className="shrink-0 text-[12px] text-muted">{dm(h.day)}</span>
+                </div>
+              ))}
+            </div>
+          </section>
 
-          <Section title={u("Haftalik iz")}>
-            <div className="mt-4 grid grid-cols-7 gap-1.5">
-              {DAYS.map((d, i) => {
-                const on = stats.week[i];
-                const now = i === stats.todayIndex;
+          <section className="mt-7" aria-label={u("Belgilar")}>
+            <h2 className={h2}>{u("Belgilar")}</h2>
+            <div className="mt-3 grid grid-cols-2 gap-3">
+              {BADGES.map((b) => {
+                const v = b.value(reads, stats.categories);
+                const done = v >= b.goal;
                 return (
-                  <div key={d} className="flex flex-col items-center gap-2">
-                    <span className={`h-11 w-full ${on ? "bg-clay" : "border border-line"} ${now ? "outline outline-2 outline-offset-2 outline-ink" : ""}`} aria-hidden="true" />
-                    <span className={`font-mono text-[11px] ${now ? "text-ink" : "text-muted"}`}>{u(d)}</span>
+                  <div key={b.id} className={`glass rounded-[24px] p-4 ${done ? "ring-1 ring-clay" : ""}`}>
+                    <span className={`flex h-9 w-9 items-center justify-center rounded-full ${done ? "bg-clay text-onclay" : "bg-sand text-muted"}`}><Check size={18} strokeWidth={done ? 3 : 1.5} /></span>
+                    <p className="mt-3 text-[15px] font-semibold leading-snug">{u(b.title)}</p>
+                    <p className="mt-1 text-[12px] text-muted">{done ? u("Olindi") : `${u("yana")} ${b.goal - v}`}</p>
                   </div>
                 );
               })}
             </div>
-          </Section>
-
-          <Section title={u("Belgilar")}>
-            <ul>
-              {BADGES.map((b, i) => {
-                const v = b.value(reads, stats.categories);
-                const done = v >= b.goal;
-                return (
-                  <li key={b.id} className="flex items-center justify-between border-b border-line py-4">
-                    <div>
-                      <p className={`text-[17px] font-semibold leading-tight ${done ? "" : "text-muted"}`}>{u(b.title)}</p>
-                      <p className={`mt-1 text-muted ${mono}`}>{done ? u("Olindi") : `${u("yana")} ${b.goal - v}`}</p>
-                    </div>
-                    <span className={`font-display text-[40px] leading-none ${done ? "text-clay" : "text-line"}`} aria-hidden="true">{String(i + 1).padStart(2, "0")}</span>
-                  </li>
-                );
-              })}
-            </ul>
-          </Section>
+          </section>
         </>
       )}
 
-      {saved.length > 0 && (
-        <Section title={u("Saqlanganlar")}>
-          <ul>
-            {saved.map((t) => <li key={t.id} className="border-b border-line py-4 font-display text-[26px] leading-[1]">{c(t.title)}</li>)}
-          </ul>
-        </Section>
-      )}
-
-      <Section title={u("Ko‘rinish")}>
+      <section className="mt-7">
+        <h2 className={h2}>{u("Ko‘rinish")}</h2>
         <div className={group} role="group" aria-label={u("Ko‘rinish")}>
           {([["auto", "Avto"], ["light", "Kunduzgi"], ["dark", "Tungi"]] as const).map(([k, label]) => (
             <button key={k} className={seg(theme === k)} aria-pressed={theme === k} onClick={() => setTheme(k)}>{u(label)}</button>
           ))}
         </div>
-      </Section>
-
-      <Section title={u("Alifbo")}>
+        <h2 className={`${h2} mt-6`}>{u("Alifbo")}</h2>
         <div className={group} role="group" aria-label={u("Alifbo")}>
           <button className={seg(alphabet === "new")} aria-pressed={alphabet === "new"} onClick={() => changeAlphabet("new")}>Yangi: Ö Ğ Ş Ç</button>
           <button className={seg(alphabet === "old")} aria-pressed={alphabet === "old"} onClick={() => changeAlphabet("old")}>Eski: O‘ G‘ Sh Ch</button>
         </div>
-      </Section>
+      </section>
 
-      <p className={`mt-10 text-muted ${mono}`}>v {__BUILD__} · {u("rol")}: {profile?.role === "admin" ? "admin" : u("oddiy")}</p>
+      <p className="mt-9 flex items-center gap-1 text-[12px] text-muted">v {__BUILD__} · {u("rol")}: {profile?.role === "admin" ? "admin" : u("oddiy")} <ChevronRight size={12} className="opacity-0" aria-hidden="true" /></p>
     </div>
   );
 }

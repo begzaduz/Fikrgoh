@@ -28,6 +28,7 @@ beforeAll(() => {
     if (url.includes("/functions/v1/swift-processor")) return json({ access_token: jwt, refresh_token: "r" });
     if (url.includes("/auth/v1/user")) return json(USER);
     if (url.includes("/rpc/feed")) return json(FEED);
+    if (url.includes("/rest/v1/thought_reads")) return json([{ day: "2026-11-20", thought_id: 1, thoughts: { title: "Töğri savol" } }]);
     if (url.includes("/rpc/get_stats")) return json(STATS);
     if (url.includes("/rpc/record_read")) return json(null, 204);
     if (url.includes("/rpc/get_daily")) return json(DAILY);
@@ -206,7 +207,7 @@ describe("Fikrnoma", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "Profil" }));
     await waitFor(() => expect(screen.getByText("Haftalik iz")).toBeTruthy());
-    expect(screen.getByText(/Unvon: Kuzatuv[cç]i/)).toBeTruthy();
+    expect(screen.getByText(/^Kuzatuv[cç]i$/)).toBeTruthy();
     expect(screen.getByText("Belgilar")).toBeTruthy();
     expect(screen.getByText("Ketma-ket kun")).toBeTruthy();
     expect(screen.getByText(/Birin[cç]i sahifa/)).toBeTruthy();
@@ -260,7 +261,7 @@ describe("Fikrnoma", () => {
     const { default: App } = await import("../src/App");
     render(<AppProvider><App /></AppProvider>);
     const btn = (await screen.findByRole("button", { name: /Kiri[sş]/ })) as HTMLButtonElement;
-    expect(screen.getByText("Axborot")).toBeTruthy();
+    expect(screen.getByText("Axborot emas.")).toBeTruthy();
     await waitFor(() => expect(btn.disabled).toBe(false), { timeout: 4000 });
     expect(document.querySelector("[inert]")).not.toBeNull();             // orqadagi ilova bosilmaydi
     fireEvent.click(btn);
