@@ -24,6 +24,9 @@ function ShortCard({ s }: { s: Short }) {
   const vid = useRef<HTMLVideoElement>(null);
   const [muted, setMuted] = useState(true);
   const [failed, setFailed] = useState(false);
+  const [direct, setDirect] = useState(false);
+  // Avval proksi (/sb) orqali, bo‘lmasa to‘g‘ridan-to‘g‘ri havola bilan ochiladi.
+  const src = s.video_url ? (direct ? s.video_url : proxied(s.video_url)) : undefined;
 
   // Faqat ko‘rinib turgan video ijro bo‘ladi (trafik va batareyani tejaydi).
   useEffect(() => {
@@ -42,7 +45,7 @@ function ShortCard({ s }: { s: Short }) {
     <section ref={box} className={`relative flex h-full snap-start flex-col px-6 pb-8 pt-6 ${hasVideo ? "bg-black text-white" : TONE[s.tone]}`}>
       {hasVideo && (
         <>
-          <video ref={vid} src={s.video_url!} muted={muted} loop playsInline preload="metadata" onError={() => setFailed(true)} className="absolute inset-0 h-full w-full object-cover" />
+          <video ref={vid} src={src} muted={muted} loop playsInline preload="metadata" onError={() => (direct || src === s.video_url ? setFailed(true) : setDirect(true))} className="absolute inset-0 h-full w-full object-cover" />
           <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/10 to-black/30" aria-hidden="true" />
         </>
       )}
