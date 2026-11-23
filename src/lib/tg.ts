@@ -32,7 +32,7 @@ export function tgUserId(initData: string): number | null {
 }
 
 /** Bot nomi (@BotFather dagi username, @siz). Boshqacha bo‘lsa .env da VITE_TG_BOT ni yozing. */
-export const BOT = (import.meta.env.VITE_TG_BOT as string | undefined) || "fikrnomabot";
+export const BOT = ((import.meta as { env?: Record<string, string> }).env?.VITE_TG_BOT) || "fikrnomabot";
 /** Short'ni Telegram orqali ulashadi (ro‘yxatdan chat tanlanadi). Telegramdan tashqarida: tizim ulashish oynasi yoki yangi oyna. */
 export function share(text: string, id: number) {
   const link = `https://t.me/${BOT}?startapp=short_${id}`;

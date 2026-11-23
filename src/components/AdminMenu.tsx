@@ -11,11 +11,11 @@ export function AdminMenu({ onEdit, onDelete, light = false }: { onEdit: () => v
   return (
     <div className="relative">
       <button aria-label={u("Amallar")} aria-expanded={open} onClick={() => setOpen((v) => !v)}
-        className={`flex h-11 w-11 items-center justify-center rounded-full ${light ? "bg-black/30 text-white" : "text-muted"}`}>
+        className={`flex h-11 w-11 items-center justify-center rounded-full ${light ? "bg-black/40 text-white" : "text-muted"}`}>
         <MoreHorizontal size={20} />
       </button>
       {open && (
-        <div className="absolute right-0 top-11 z-30 w-44 rounded-2xl border border-line bg-paper p-1 text-ink shadow-lg">
+        <div className="absolute right-0 top-11 z-30 w-44 rounded-2xl border border-line bg-paper p-1 text-ink">
           <button className="flex min-h-[44px] w-full items-center gap-2 rounded-xl px-3 text-sm" onClick={() => { setOpen(false); onEdit(); }}>
             <Pencil size={16} /> {u("Tahrirlash")}
           </button>

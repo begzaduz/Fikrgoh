@@ -1,5 +1,4 @@
 import { useEffect, useRef, useState } from "react";
-import { ArrowLeft, Search } from "lucide-react";
 import { CATEGORY_LABEL, ReactionBar, ThoughtCard } from "../components/ThoughtCard";
 import { tg } from "../lib/tg";
 import { useApp } from "../store";
@@ -31,32 +30,34 @@ export function Home() {
     return () => { back.offClick(close); back.hide(); };
   }, [open]);
 
+  const mono = "font-mono text-[11px] uppercase tracking-[0.14em]";
   if (open) {
     return (
-      <article className="p-4 pb-10">
-        <button className="flex min-h-[44px] items-center gap-1.5 text-sm text-muted" onClick={() => setOpenId(null)}>
-          <ArrowLeft size={18} /> {u("Orqaga")}
+      <article className="px-5 pb-14 pt-2">
+        <button className={`flex min-h-[44px] items-center gap-2 text-muted ${mono}`} onClick={() => setOpenId(null)}>
+          <span aria-hidden="true">←</span> {u("Orqaga")}
         </button>
-        <span className="mt-2 block text-[12px] font-semibold uppercase tracking-[1.5px] text-clay">{u(CATEGORY_LABEL[open.category])}</span>
-        <h1 className="mt-2 font-display text-[30px] font-bold leading-tight">{c(open.title)}</h1>
-        <div className="mt-5 space-y-5 font-serif text-[18px] leading-[1.8] text-pretty">
+        <span className={`mt-3 block text-clay ${mono}`}>{u(CATEGORY_LABEL[open.category])}</span>
+        <h1 className="font-display mt-3 text-[46px] leading-[0.93] text-balance">{c(open.title)}</h1>
+        <div className="mt-7 space-y-5 border-t border-ink pt-6 font-serif text-[18px] leading-[1.8] text-pretty">
           {c(open.body).split("\n\n").map((p, i) => <p key={i}>{p}</p>)}
         </div>
-        <ReactionBar t={open} />
+        <div className="mt-6 border-t border-line pt-1"><ReactionBar t={open} /></div>
       </article>
     );
   }
 
   return (
-    <div className="p-4">
-      <label className="flex min-h-[44px] items-center gap-2 rounded-2xl border border-line bg-sand px-3.5">
-        <Search size={18} className="text-muted" />
+    <div className="px-5 pb-8 pt-3">
+      <label className="flex min-h-[48px] items-center gap-3 border-b border-ink">
+        <span className={`text-muted ${mono}`} aria-hidden="true">{u("Qidiruv")}</span>
         <input value={q} onChange={(e) => setQ(e.target.value)} placeholder={u("Fikrlardan qidirish")} aria-label={u("Qidirish")}
-          className="w-full bg-transparent text-base text-ink placeholder:text-muted" />
+          className="w-full bg-transparent text-base text-ink outline-none placeholder:text-muted" />
       </label>
-      <h2 className="mt-5 font-display text-xl font-semibold">{u("Fikrlar lentasi")}</h2>
-      {thoughts.length === 0 && <p className="mt-4 text-sm text-muted">{u("Hozircha fikr topilmadi.")}</p>}
-      {thoughts.map((t) => <ThoughtCard key={t.id} t={t} onOpen={() => setOpenId(t.id)} />)}
+      {thoughts.length === 0 && <p className="mt-6 text-sm text-muted">{u("Hozircha fikr topilmadi.")}</p>}
+      <div className="mt-4">
+        {thoughts.map((t, i) => <ThoughtCard key={t.id} t={t} index={i} onOpen={() => setOpenId(t.id)} />)}
+      </div>
     </div>
   );
 }

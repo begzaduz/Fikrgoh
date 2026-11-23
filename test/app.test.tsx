@@ -42,11 +42,20 @@ beforeAll(() => {
   }) as any;
 });
 
+
+/** Intro ekranidan "Kirish" tugmasini bosib o‘tadi (ma’lumot yuklanguncha tugma o‘chiq turadi). */
+async function boot(ui: React.ReactElement) {
+  render(ui);
+  const btn = await screen.findByRole("button", { name: /Kiri[sş]/ });
+  await waitFor(() => expect((btn as HTMLButtonElement).disabled).toBe(false), { timeout: 4000 });
+  fireEvent.click(btn);
+}
+
 describe("Fikrnoma", () => {
   it("Telegram ichida kiradi va lentani ko‘rsatadi (kunlik savollarsiz)", async () => {
     const { AppProvider } = await import("../src/store");
     const { default: App } = await import("../src/App");
-    render(<AppProvider><App /></AppProvider>);
+    await boot(<AppProvider><App /></AppProvider>);
 
     await waitFor(() => expect(screen.getByText("Töğri savol")).toBeTruthy(), { timeout: 4000 });
     expect(screen.getByText("Töğri savol")).toBeTruthy();                       // fikrlar lentasi
@@ -59,7 +68,7 @@ describe("Fikrnoma", () => {
   it("admin eski alifboda yozadi, matn yangi alifboda joylanadi", async () => {
     const { AppProvider } = await import("../src/store");
     const { default: App } = await import("../src/App");
-    render(<AppProvider><App /></AppProvider>);
+    await boot(<AppProvider><App /></AppProvider>);
     await waitFor(() => expect(screen.getByText("Töğri savol")).toBeTruthy(), { timeout: 4000 });
 
     fireEvent.click(screen.getByRole("button", { name: "Yangi fikr" }));
@@ -78,7 +87,7 @@ describe("Fikrnoma", () => {
   it("admin fikrni tahrirlaydi va o‘chiradi (tasdiqlash bilan)", async () => {
     const { AppProvider } = await import("../src/store");
     const { default: App } = await import("../src/App");
-    render(<AppProvider><App /></AppProvider>);
+    await boot(<AppProvider><App /></AppProvider>);
     await waitFor(() => expect(screen.getByText("Töğri savol")).toBeTruthy(), { timeout: 4000 });
 
     // Tahrirlash
@@ -103,7 +112,7 @@ describe("Fikrnoma", () => {
   it("video: juda katta yoki video bo‘lmagan fayl rad etiladi", async () => {
     const { AppProvider } = await import("../src/store");
     const { default: App } = await import("../src/App");
-    render(<AppProvider><App /></AppProvider>);
+    await boot(<AppProvider><App /></AppProvider>);
     await waitFor(() => expect(screen.getByText("Töğri savol")).toBeTruthy(), { timeout: 4000 });
     fireEvent.click(screen.getByRole("button", { name: "Yangi fikr" }));
     fireEvent.click(await screen.findByRole("button", { name: "Short" }));
@@ -140,7 +149,7 @@ describe("Fikrnoma", () => {
   const openShortComposer = async () => {
     const { AppProvider } = await import("../src/store");
     const { default: App } = await import("../src/App");
-    render(<AppProvider><App /></AppProvider>);
+    await boot(<AppProvider><App /></AppProvider>);
     await waitFor(() => expect(screen.getByText("Töğri savol")).toBeTruthy(), { timeout: 4000 });
     fireEvent.click(screen.getByRole("button", { name: "Yangi fikr" }));
     fireEvent.click(await screen.findByRole("button", { name: "Short" }));
@@ -180,7 +189,7 @@ describe("Fikrnoma", () => {
     const { default: App } = await import("../src/App");
     const before = calls.filter((c) => c.startsWith("POST /functions/v1/swift-processor")).length;
     (window as any).Telegram.WebApp.initData = `auth_date=1&hash=abc&user=${encodeURIComponent(JSON.stringify({ id: 555, first_name: "Boshqa" }))}`;
-    render(<AppProvider><App /></AppProvider>);
+    await boot(<AppProvider><App /></AppProvider>);
     await waitFor(() => expect(screen.getByText("Töğri savol")).toBeTruthy(), { timeout: 4000 });
     const after = calls.filter((c) => c.startsWith("POST /functions/v1/swift-processor")).length;
     expect(after).toBe(before + 1);
@@ -189,7 +198,7 @@ describe("Fikrnoma", () => {
   it("fikr ochilganda o‘qilgani yoziladi, profilda ko‘rsatkichlar chiqadi", async () => {
     const { AppProvider } = await import("../src/store");
     const { default: App } = await import("../src/App");
-    render(<AppProvider><App /></AppProvider>);
+    await boot(<AppProvider><App /></AppProvider>);
     await waitFor(() => expect(screen.getByText("Töğri savol")).toBeTruthy(), { timeout: 4000 });
 
     fireEvent.click(screen.getByText("Töğri savol"));
@@ -209,7 +218,7 @@ describe("Fikrnoma", () => {
     localStorage.removeItem("fikrnoma-theme");
     const { AppProvider } = await import("../src/store");
     const { default: App } = await import("../src/App");
-    render(<AppProvider><App /></AppProvider>);
+    await boot(<AppProvider><App /></AppProvider>);
     await waitFor(() => expect(screen.getByText("Töğri savol")).toBeTruthy(), { timeout: 4000 });
 
     fireEvent.click(screen.getByRole("button", { name: "Tungi rejim" }));
@@ -230,7 +239,7 @@ describe("Fikrnoma", () => {
     (window as any).Telegram.WebApp.openTelegramLink = open;
     const { AppProvider } = await import("../src/store");
     const { default: App } = await import("../src/App");
-    render(<AppProvider><App /></AppProvider>);
+    await boot(<AppProvider><App /></AppProvider>);
     await waitFor(() => expect(screen.getByText("Töğri savol")).toBeTruthy(), { timeout: 4000 });
 
     fireEvent.click(screen.getByRole("button", { name: "Shorts" }));
@@ -244,5 +253,19 @@ describe("Fikrnoma", () => {
     expect(open).toHaveBeenCalledTimes(1);
     expect(String(open.mock.calls[0][0])).toContain("https://t.me/share/url?url=");
     expect(decodeURIComponent(String(open.mock.calls[0][0]))).toContain("t.me/fikrnomabot");
+  });
+
+  it("kirish ekrani: tugma bosilmaguncha ilova ochilmaydi", async () => {
+    const { AppProvider } = await import("../src/store");
+    const { default: App } = await import("../src/App");
+    render(<AppProvider><App /></AppProvider>);
+    const btn = (await screen.findByRole("button", { name: /Kiri[sş]/ })) as HTMLButtonElement;
+    expect(screen.getByText("Axborot")).toBeTruthy();
+    await waitFor(() => expect(btn.disabled).toBe(false), { timeout: 4000 });
+    expect(document.querySelector("[inert]")).not.toBeNull();             // orqadagi ilova bosilmaydi
+    fireEvent.click(btn);
+    await waitFor(() => expect(document.querySelector("[inert]")).toBeNull());
+    await waitFor(() => expect(screen.queryByRole("button", { name: /Kiri[sş]/ })).toBeNull());   // intro yopildi
+    expect(screen.getByRole("button", { name: "Profil" })).toBeTruthy();
   });
 });

@@ -2,7 +2,7 @@ import { tg } from "./tg";
 
 export type Theme = "auto" | "light" | "dark";
 const KEY = "fikrnoma-theme";
-const PAPER = { light: "#f3ecdd", dark: "#211c17" } as const;
+const PAPER = { light: "#f4f4ef", dark: "#0c1110" } as const;
 
 export function loadTheme(): Theme {
   try {

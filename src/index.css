@@ -3,23 +3,26 @@
 @tailwind utilities;
 
 :root {
-  --paper: #f3ecdd; --ink: #211c17; --sand: #e8dec9; --line: #d9cdb5; --muted: #6b5f52;
-  --clay: #a2461f; --onclay: #f3ecdd; --sage: #5f6f55; --night: #211c17; --onnight: #f3ecdd;
+  --paper: #f4f4ef; --ink: #0f1312; --sand: #e7e8e1; --line: #c9cdc4; --muted: #566059;
+  --clay: #0a6e68; --onclay: #f4f4ef; --sage: #0a6e68; --night: #0f1312; --onnight: #f4f4ef;
   --safe-top: calc(env(safe-area-inset-top, 0px) + var(--tg-content-safe-area-inset-top, 0px));
   color-scheme: light;
 }
 /* Rejim: "auto" (data-theme yo‘q) tizim sozlamasiga ergashadi; "light"/"dark" qo‘lda tanlanadi. */
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
-    --paper: #211c17; --ink: #f3ecdd; --sand: #2e2721; --line: #4a4036; --muted: #b9ad9a;
-  --clay: #e39a70; --onclay: #211c17; --sage: #3b4634; --night: #15110e; --onnight: #f3ecdd; color-scheme: dark;
+    --paper: #0c1110; --ink: #e9eae3; --sand: #151b1a; --line: #2b3532; --muted: #8f9d98;
+    --clay: #3fcdb9; --onclay: #0c1110; --sage: #3fcdb9; --night: #060909; --onnight: #e9eae3; color-scheme: dark;
   }
 }
 :root[data-theme="dark"] {
-  --paper: #211c17; --ink: #f3ecdd; --sand: #2e2721; --line: #4a4036; --muted: #b9ad9a;
-  --clay: #e39a70; --onclay: #211c17; --sage: #3b4634; --night: #15110e; --onnight: #f3ecdd; color-scheme: dark;
+  --paper: #0c1110; --ink: #e9eae3; --sand: #151b1a; --line: #2b3532; --muted: #8f9d98;
+  --clay: #3fcdb9; --onclay: #0c1110; --sage: #3fcdb9; --night: #060909; --onnight: #e9eae3; color-scheme: dark;
 }
 html, body, #root { height: 100%; margin: 0; }
-body { background: var(--paper); color: var(--ink); font-family: Inter, system-ui, sans-serif; -webkit-font-smoothing: antialiased; transition: background-color .25s, color .25s; }
+body { background: var(--paper); color: var(--ink); font-family: Archivo, system-ui, sans-serif; -webkit-font-smoothing: antialiased; transition: background-color .25s, color .25s; }
 button { font: inherit; cursor: pointer; }
 button:focus-visible, textarea:focus-visible, input:focus-visible { outline: 2px solid var(--clay); outline-offset: 2px; }
+/* Sarlavhalar: Archivo'ning eng tor va eng qalin ko‘rinishi */
+.font-display { font-stretch: 70%; font-weight: 800; letter-spacing: -0.01em; }
+::selection { background: var(--clay); color: var(--onclay); }

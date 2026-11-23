@@ -1,140 +1,132 @@
-import { BookOpen, Check, Compass, Feather, Library, Lock } from "lucide-react";
 import { useApp } from "../store";
 
 const LEVELS = ["Kuzatuvchi", "Mulohazachi", "Mutafakkir"];
 const DAYS = ["D", "S", "Ch", "P", "J", "Sh", "Y"];
+const mono = "font-mono text-[11px] uppercase tracking-[0.14em]";
 
 /** Belgilar: faqat o‘qish odatiga bog‘liq (XP va bosim yo‘q). Nomlari eski alifboda yoziladi, u() o‘giradi. */
 const BADGES = [
-  { id: "first", title: "Birinchi sahifa", icon: BookOpen, goal: 1, value: (r: number) => r },
-  { id: "five", title: "Besh fikr", icon: Feather, goal: 5, value: (r: number) => r },
-  { id: "ten", title: "O‘n fikr", icon: Library, goal: 10, value: (r: number) => r },
-  { id: "three", title: "Uch yo‘nalish", icon: Compass, goal: 3, value: (_: number, cats: number) => cats },
+  { id: "first", title: "Birinchi sahifa", goal: 1, value: (r: number) => r },
+  { id: "five", title: "Besh fikr", goal: 5, value: (r: number) => r },
+  { id: "ten", title: "O‘n fikr", goal: 10, value: (r: number) => r },
+  { id: "three", title: "Uch yo‘nalish", goal: 3, value: (_: number, cats: number) => cats },
 ] as const;
+
+function Section({ title, children }: { title: string; children: React.ReactNode }) {
+  return (
+    <section className="mt-9" aria-label={title}>
+      <h2 className={`border-b border-ink pb-2 text-muted ${mono}`}>{title}</h2>
+      {children}
+    </section>
+  );
+}
 
 export function Profile() {
   const { profile, stats, thoughts, alphabet, changeAlphabet, theme, setTheme, u, c } = useApp();
   const saved = thoughts.filter((t) => t.saved);
-  const seg = (on: boolean) => `min-h-[44px] flex-1 rounded-xl px-3 text-[13px] font-semibold ${on ? "bg-clay text-onclay" : "text-muted"}`;
   const reads = stats?.reads ?? 0;
   const left = stats?.levelTo ? stats.levelTo - reads : 0;
   const name = profile?.first_name ?? u("Mehmon");
+  const seg = (on: boolean) => `min-h-[46px] flex-1 px-2 ${mono} ${on ? "bg-ink text-paper" : "text-muted"}`;
+  const group = "mt-4 flex divide-x divide-ink border border-ink";
 
   return (
-    <div className="p-4 pb-8">
-      <section className="rounded-[22px] bg-sand p-5">
-        <div className="flex items-center gap-4">
-          <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-full bg-clay font-display text-[28px] font-bold text-onclay" aria-hidden="true">
-            {name.slice(0, 1).toUpperCase()}
-          </div>
-          <div className="min-w-0">
-            <h1 className="truncate font-display text-[26px] font-bold leading-tight">{name}</h1>
-            {profile?.username && <p className="truncate text-sm text-muted">@{profile.username}</p>}
-          </div>
-        </div>
-        {stats && (
-          <>
-            <span className="mt-4 inline-block rounded-full bg-paper px-3.5 py-1.5 text-[13px] font-semibold text-clay">
-              {u("Unvon")}: {u(LEVELS[stats.level]!)}
-            </span>
-            {stats.levelTo ? (
-              <>
-                <div className="mt-3 h-1.5 rounded-full bg-line" role="progressbar" aria-valuenow={reads} aria-valuemin={0} aria-valuemax={stats.levelTo}>
-                  <div className="h-1.5 rounded-full bg-clay" style={{ width: `${Math.min(100, (reads / stats.levelTo) * 100)}%` }} />
-                </div>
-                <p className="mt-2 text-[13px] text-muted">{u(LEVELS[stats.level + 1]!)} {u("unvoniga yana")} {left} {u("ta fikr qoldi")}</p>
-              </>
-            ) : (
-              <p className="mt-3 text-[13px] text-muted">{u("Eng yuqori unvonga yetdingiz.")}</p>
-            )}
-            <div className="mt-4 grid grid-cols-3 gap-2 border-t border-line pt-4">
-              {[[reads, "O‘qilgan fikrlar"], [saved.length, "Saqlanganlar"], [stats.streak, "Ketma-ket kun"]].map(([n, label]) => (
-                <div key={label as string}>
-                  <div className="font-display text-[28px] font-bold leading-none">{n}</div>
-                  <div className="mt-1.5 text-[12px] leading-tight text-muted">{u(label as string)}</div>
-                </div>
-              ))}
-            </div>
-          </>
-        )}
-      </section>
+    <div className="px-5 pb-12 pt-6">
+      <p className={`text-muted ${mono}`}>{u("Profil")}</p>
+      <h1 className="font-display mt-2 break-words text-[64px] leading-[0.88]">{name}</h1>
+      {profile?.username && <p className="mt-3 font-mono text-[12px] text-muted">@{profile.username}</p>}
 
       {stats && (
         <>
-          <section className="mt-4 rounded-[22px] bg-sand p-5" aria-label={u("Bugungi fikr")}>
-            <div className="flex items-baseline justify-between">
-              <h2 className="font-display text-xl font-semibold">{u("Bugungi fikr")}</h2>
-              <span className="text-[13px] font-semibold text-muted">{stats.today ? 1 : 0}/1</span>
-            </div>
-            <p className="mt-1 text-sm text-muted">{stats.today ? u("Bugun o‘qidingiz. Ertaga davom eting.") : u("Bugun bitta fikr o‘qing.")}</p>
-            <div className="mt-3 h-1.5 rounded-full bg-line" aria-hidden="true">
-              <div className="h-1.5 rounded-full bg-clay" style={{ width: stats.today ? "100%" : "0%" }} />
-            </div>
-          </section>
+          <div className="mt-6 border-y border-ink py-3">
+            <span className={`text-clay ${mono}`}>{u("Unvon")}: {u(LEVELS[stats.level]!)}</span>
+            {stats.levelTo ? (
+              <>
+                <div className="mt-3 h-[3px] bg-line" role="progressbar" aria-valuenow={reads} aria-valuemin={0} aria-valuemax={stats.levelTo}>
+                  <div className="h-[3px] bg-clay" style={{ width: `${Math.min(100, (reads / stats.levelTo) * 100)}%` }} />
+                </div>
+                <p className="mt-2.5 text-[13px] text-muted">{u(LEVELS[stats.level + 1]!)} {u("unvoniga yana")} {left} {u("ta fikr qoldi")}</p>
+              </>
+            ) : (
+              <p className="mt-2.5 text-[13px] text-muted">{u("Eng yuqori unvonga yetdingiz.")}</p>
+            )}
+          </div>
 
-          <section className="mt-4 rounded-[22px] bg-sand p-5" aria-label={u("Haftalik iz")}>
-            <h2 className="font-display text-xl font-semibold">{u("Haftalik iz")}</h2>
-            <div className="mt-4 flex justify-between">
+          <div className="grid grid-cols-3 divide-x divide-line border-b border-ink">
+            {[[reads, "O‘qilgan fikrlar"], [saved.length, "Saqlanganlar"], [stats.streak, "Ketma-ket kun"]].map(([n, label], i) => (
+              <div key={label as string} className={`py-5 ${i > 0 ? "pl-4" : ""}`}>
+                <div className="font-display text-[56px] leading-none">{n}</div>
+                <div className={`mt-2.5 text-[10px] leading-tight text-muted ${mono.replace("text-[11px]", "")}`}>{u(label as string)}</div>
+              </div>
+            ))}
+          </div>
+
+          <Section title={u("Bugungi fikr")}>
+            <div className="flex items-baseline justify-between pt-4">
+              <p className="text-[15px]">{stats.today ? u("Bugun o‘qidingiz. Ertaga davom eting.") : u("Bugun bitta fikr o‘qing.")}</p>
+              <span className="font-mono text-[13px] text-muted">{stats.today ? 1 : 0}/1</span>
+            </div>
+          </Section>
+
+          <Section title={u("Haftalik iz")}>
+            <div className="mt-4 grid grid-cols-7 gap-1.5">
               {DAYS.map((d, i) => {
                 const on = stats.week[i];
                 const now = i === stats.todayIndex;
                 return (
                   <div key={d} className="flex flex-col items-center gap-2">
-                    <span className={`flex h-9 w-9 items-center justify-center rounded-full ${on ? "bg-clay text-onclay" : "bg-paper text-muted"} ${now ? "ring-2 ring-clay ring-offset-2 ring-offset-sand" : ""}`}>
-                      {on && <Check size={16} />}
-                    </span>
-                    <span className={`text-[12px] ${now ? "font-semibold text-ink" : "text-muted"}`}>{u(d)}</span>
+                    <span className={`h-11 w-full ${on ? "bg-clay" : "border border-line"} ${now ? "outline outline-2 outline-offset-2 outline-ink" : ""}`} aria-hidden="true" />
+                    <span className={`font-mono text-[11px] ${now ? "text-ink" : "text-muted"}`}>{u(d)}</span>
                   </div>
                 );
               })}
             </div>
-          </section>
+          </Section>
 
-          <section className="mt-4 rounded-[22px] bg-sand p-5" aria-label={u("Belgilar")}>
-            <h2 className="font-display text-xl font-semibold">{u("Belgilar")}</h2>
-            <div className="mt-3 grid grid-cols-2 gap-2.5">
-              {BADGES.map((b) => {
+          <Section title={u("Belgilar")}>
+            <ul>
+              {BADGES.map((b, i) => {
                 const v = b.value(reads, stats.categories);
                 const done = v >= b.goal;
-                const Icon = b.icon;
                 return (
-                  <div key={b.id} className={`rounded-2xl border p-3.5 ${done ? "border-clay" : "border-line"}`}>
-                    <span className={`relative flex h-11 w-11 items-center justify-center rounded-full ${done ? "bg-clay text-onclay" : "bg-paper text-muted"}`}>
-                      <Icon size={20} />
-                      {!done && <Lock size={12} className="absolute -bottom-0.5 -right-0.5 rounded-full bg-sand p-[2px]" />}
-                    </span>
-                    <p className="mt-2.5 text-[14px] font-semibold leading-snug">{u(b.title)}</p>
-                    <p className="mt-1 text-[12px] text-muted">{done ? u("Olindi") : `${u("yana")} ${b.goal - v}`}</p>
-                  </div>
+                  <li key={b.id} className="flex items-center justify-between border-b border-line py-4">
+                    <div>
+                      <p className={`text-[17px] font-semibold leading-tight ${done ? "" : "text-muted"}`}>{u(b.title)}</p>
+                      <p className={`mt-1 text-muted ${mono}`}>{done ? u("Olindi") : `${u("yana")} ${b.goal - v}`}</p>
+                    </div>
+                    <span className={`font-display text-[40px] leading-none ${done ? "text-clay" : "text-line"}`} aria-hidden="true">{String(i + 1).padStart(2, "0")}</span>
+                  </li>
                 );
               })}
-            </div>
-          </section>
+            </ul>
+          </Section>
         </>
       )}
 
       {saved.length > 0 && (
-        <>
-          <h2 className="mt-6 font-display text-xl font-semibold">{u("Saqlanganlar")}</h2>
-          <div className="mt-2 grid gap-2.5">
-            {saved.map((t) => <p key={t.id} className="rounded-[18px] bg-sand p-4 font-serif text-[17px] leading-snug">{c(t.title)}</p>)}
-          </div>
-        </>
+        <Section title={u("Saqlanganlar")}>
+          <ul>
+            {saved.map((t) => <li key={t.id} className="border-b border-line py-4 font-display text-[26px] leading-[1]">{c(t.title)}</li>)}
+          </ul>
+        </Section>
       )}
 
-      <h2 className="mt-6 font-display text-xl font-semibold">{u("Ko‘rinish")}</h2>
-      <div className="mt-2 flex gap-1 rounded-2xl border border-line p-1" role="group" aria-label={u("Ko‘rinish")}>
-        {([["auto", "Avto"], ["light", "Kunduzgi"], ["dark", "Tungi"]] as const).map(([k, label]) => (
-          <button key={k} className={seg(theme === k)} aria-pressed={theme === k} onClick={() => setTheme(k)}>{u(label)}</button>
-        ))}
-      </div>
+      <Section title={u("Ko‘rinish")}>
+        <div className={group} role="group" aria-label={u("Ko‘rinish")}>
+          {([["auto", "Avto"], ["light", "Kunduzgi"], ["dark", "Tungi"]] as const).map(([k, label]) => (
+            <button key={k} className={seg(theme === k)} aria-pressed={theme === k} onClick={() => setTheme(k)}>{u(label)}</button>
+          ))}
+        </div>
+      </Section>
 
-      <h2 className="mt-6 font-display text-xl font-semibold">{u("Alifbo")}</h2>
-      <div className="mt-2 flex gap-1 rounded-2xl border border-line p-1" role="group" aria-label={u("Alifbo")}>
-        <button className={seg(alphabet === "new")} aria-pressed={alphabet === "new"} onClick={() => changeAlphabet("new")}>Yangi: Ö Ğ Ş Ç</button>
-        <button className={seg(alphabet === "old")} aria-pressed={alphabet === "old"} onClick={() => changeAlphabet("old")}>Eski: O‘ G‘ Sh Ch</button>
-      </div>
-      <p className="mt-8 text-[12px] text-muted">v {__BUILD__} · {u("rol")}: {profile?.role === "admin" ? "admin" : u("oddiy")}</p>
+      <Section title={u("Alifbo")}>
+        <div className={group} role="group" aria-label={u("Alifbo")}>
+          <button className={seg(alphabet === "new")} aria-pressed={alphabet === "new"} onClick={() => changeAlphabet("new")}>Yangi: Ö Ğ Ş Ç</button>
+          <button className={seg(alphabet === "old")} aria-pressed={alphabet === "old"} onClick={() => changeAlphabet("old")}>Eski: O‘ G‘ Sh Ch</button>
+        </div>
+      </Section>
+
+      <p className={`mt-10 text-muted ${mono}`}>v {__BUILD__} · {u("rol")}: {profile?.role === "admin" ? "admin" : u("oddiy")}</p>
     </div>
   );
 }

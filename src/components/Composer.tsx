@@ -7,7 +7,7 @@ import { canPlayVideo, inspectMp4 } from "../lib/video";
 import { useApp, type ComposerState } from "../store";
 import { CATEGORY_LABEL } from "./ThoughtCard";
 
-const TONES: Array<[Short["tone"], string]> = [["sand", "Qum"], ["sage", "Moxor"], ["ink", "Siyoh"], ["clay", "Loy"]];
+const TONES: Array<[Short["tone"], string]> = [["sand", "Suyak"], ["sage", "Firuza"], ["ink", "Qora"], ["clay", "Qizil"]];
 const mb = (n: number) => (n / 1024 / 1024).toFixed(1);
 
 /**
@@ -81,15 +81,15 @@ export function Composer({ state, onClose }: { state: Exclude<ComposerState, nul
     if (ok) onClose();
   };
 
-  const chip = (on: boolean) => `min-h-[40px] rounded-full px-4 text-[13px] font-semibold ${on ? "bg-clay text-onclay" : "bg-sand text-muted"}`;
-  const field = "w-full rounded-2xl border border-line bg-sand p-3 text-base text-ink placeholder:text-muted";
+  const chip = (on: boolean) => `min-h-[40px] border px-4 font-mono text-[11px] uppercase tracking-[0.12em] ${on ? "border-clay bg-clay text-onclay" : "border-line text-muted"}`;
+  const field = "w-full border border-ink bg-transparent p-3 text-base text-ink placeholder:text-muted";
 
   return (
     <motion.div className="fixed inset-0 z-50 flex justify-center bg-paper" role="dialog" aria-modal="true" aria-label={edit ? u("Tahrirlash") : u("Yangi fikr")}
       initial={{ y: 40, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: 40, opacity: 0 }}>
       <div className="flex h-full w-full max-w-[560px] flex-col">
         <header className="flex items-center justify-between border-b border-line px-4 pb-2 pt-[calc(8px+var(--safe-top))]">
-          <h2 className="font-display text-xl font-bold">{edit ? u("Tahrirlash") : u("Yangi")}</h2>
+          <h2 className="font-display text-[30px] leading-none">{edit ? u("Tahrirlash") : u("Yangi")}</h2>
           <button className="flex min-h-[44px] min-w-[44px] items-center justify-center" onClick={onClose} aria-label={u("Yopish")}><X size={22} /></button>
         </header>
 
@@ -167,7 +167,7 @@ export function Composer({ state, onClose }: { state: Exclude<ComposerState, nul
         </div>
 
         <div className="border-t border-line p-4 pb-[calc(16px+env(safe-area-inset-bottom,0px))]">
-          <button className="min-h-[48px] w-full rounded-2xl bg-clay font-bold text-onclay disabled:opacity-50" disabled={!valid || busy || checking} onClick={submit}>
+          <button className="min-h-[52px] w-full bg-clay font-mono text-[13px] uppercase tracking-[0.16em] text-onclay disabled:opacity-50" disabled={!valid || busy || checking} onClick={submit}>
             {busy && progress !== null ? `${u("Yuklanmoqda")} ${progress}%` : edit ? u("Saqlash") : u("Joylash")}
           </button>
         </div>
