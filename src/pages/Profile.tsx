@@ -18,7 +18,7 @@ const BADGES = [
 const dm = (day: string) => `${day.slice(8, 10)}.${day.slice(5, 7)}`;
 
 export function Profile() {
-  const { profile, stats, thoughts, history, alphabet, changeAlphabet, theme, setTheme, u, c } = useApp();
+  const { profile, stats, statsError, reloadStats, thoughts, history, alphabet, changeAlphabet, theme, setTheme, u, c } = useApp();
   const [sel, setSel] = useState<number | null>(null);   // tanlangan hafta kuni (null — hammasi)
   const saved = thoughts.filter((t) => t.saved).length;
   const reads = stats?.reads ?? 0;
@@ -35,6 +35,14 @@ export function Profile() {
     <div className="px-5 pb-10 pt-4">
       <h1 className="font-display text-[46px] leading-[1.02]">{u("Mening")}<br />{u("yo‘lim")}</h1>
       <p className="mt-2 text-[14px] text-muted">{profile?.first_name ?? u("Mehmon")}{profile?.username ? ` · @${profile.username}` : ""}</p>
+
+      {!stats && statsError && (
+        <section className="glass mt-6 rounded-[24px] p-4" role="alert">
+          <p className="text-[15px] font-semibold">{u("Statistika yuklanmadi")}</p>
+          <p className="mt-1 break-words text-[12px] text-muted">{statsError}</p>
+          <button className="mt-3 min-h-[44px] rounded-full bg-clay px-5 text-[13px] font-semibold text-onclay" onClick={reloadStats}>{u("Qayta urinish")}</button>
+        </section>
+      )}
 
       {stats && (
         <>

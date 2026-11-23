@@ -34,6 +34,8 @@ type Store = {
   thoughts: api.Thought[];
   shorts: api.Short[];
   stats: api.Stats | null;
+  statsError: string;
+  reloadStats: () => void;
   history: api.HistoryItem[];
   /** Boshqa sahifadan ("Saqlanganlar", markaziy tugma) fikrni ochish so‘rovi: Bosh sahifa o‘qib, tozalaydi. */
   pendingOpen: number | null;
@@ -62,6 +64,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [thoughts, setThoughts] = useState<api.Thought[]>([]);
   const [shorts, setShorts] = useState<api.Short[]>([]);
   const [stats, setStats] = useState<api.Stats | null>(null);
+  const [statsError, setStatsError] = useState("");
   const [history, setHistory] = useState<api.HistoryItem[]>([]);
   const [pendingOpen, setPendingOpen] = useState<number | null>(null);
   const requestOpen = useCallback((id: number) => setPendingOpen(id), []);
@@ -108,9 +111,17 @@ export function AppProvider({ children }: { children: ReactNode }) {
       if (f.status === "fulfilled") setThoughts(f.value);
       if (s.status === "fulfilled") setShorts(s.value);
       if (st.status === "fulfilled") setStats(st.value);
+      else setStatsError(st.reason instanceof Error ? st.reason.message : "noma’lum xato");
       if (h.status === "fulfilled") setHistory(h.value);
       setStatus("ready");
     })();
+  }, []);
+
+  const reloadStats = useCallback(() => {
+    setStatsError("");
+    Promise.all([api.getStats(), api.getHistory()])
+      .then(([st, h]) => { setStats(st); setHistory(h); })
+      .catch((e) => setStatsError(e instanceof Error ? e.message : "noma’lum xato"));
   }, []);
 
   const search = useCallback((q: string) => {
@@ -197,9 +208,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
   };
 
   const value = useMemo<Store>(
-    () => ({ status, loginError, profile, alphabet, theme, dark, setTheme, u, c, thoughts, shorts, stats, history, pendingOpen, requestOpen, clearOpen, markRead, notice, search, react, reactShort, changeAlphabet, canWrite, publish, remove, composer, setComposer }),
+    () => ({ status, loginError, profile, alphabet, theme, dark, setTheme, u, c, thoughts, shorts, stats, statsError, reloadStats, history, pendingOpen, requestOpen, clearOpen, markRead, notice, search, react, reactShort, changeAlphabet, canWrite, publish, remove, composer, setComposer }),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [status, loginError, profile, alphabet, theme, dark, setTheme, u, c, thoughts, shorts, stats, history, pendingOpen, requestOpen, clearOpen, markRead, notice, canWrite, composer],
+    [status, loginError, profile, alphabet, theme, dark, setTheme, u, c, thoughts, shorts, stats, statsError, reloadStats, history, pendingOpen, requestOpen, clearOpen, markRead, notice, canWrite, composer],
   );
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 }
