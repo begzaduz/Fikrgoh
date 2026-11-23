@@ -3,7 +3,7 @@ import { tg, tgUserId } from "./tg";
 
 export type Category = "fikr" | "mindset" | "madaniyat";
 export type Thought = { id: number; category: Category; title: string; body: string; read_minutes: number; created_at: string; likes: number; liked: boolean; saved: boolean };
-export type Short = { id: number; category: Category; quote: string; tone: "sand" | "sage" | "ink" | "clay"; video_url: string | null };
+export type Short = { id: number; category: Category; quote: string; tone: "sand" | "sage" | "ink" | "clay"; video_url: string | null; likes: number; liked: boolean };
 export type Daily = {
   day: string;
   questions: Array<{ index: number; text: string; answer: string | null }>;
@@ -55,19 +55,36 @@ export const setAlphabet = async (alphabet: "new" | "old") => {
   if (r.error) throw new Error(r.error.message);
 };
 export const getFeed = async (q = "") => must(await supabase.rpc("feed", { p_q: q || null, p_limit: 30 })) as Thought[];
-/** video_url ustuni (0002_media.sql) hali yaratilmagan bo‘lsa ham ro‘yxat ishlashi uchun zaxira so‘rov. */
+/** video_url ustuni (0002_media.sql) hali yaratilmagan bo‘lsa ham ro‘yxat ishlashi uchun zaxira so‘rov. Yoqtirishlar (0004) bo‘lmasa 0 deb olinadi. */
 export const getShorts = async (): Promise<Short[]> => {
+  type Row = Omit<Short, "likes" | "liked">;
+  let rows: Row[];
   const full = await supabase.from("shorts").select("id, category, quote, tone, video_url").eq("published", true).order("position");
-  if (!full.error) return (full.data ?? []) as Short[];
-  const basic = await supabase.from("shorts").select("id, category, quote, tone").eq("published", true).order("position");
-  if (basic.error) throw new Error(basic.error.message);
-  return (basic.data ?? []).map((x) => ({ ...x, video_url: null })) as Short[];
+  if (!full.error) rows = (full.data ?? []) as Row[];
+  else {
+    const basic = await supabase.from("shorts").select("id, category, quote, tone").eq("published", true).order("position");
+    if (basic.error) throw new Error(basic.error.message);
+    rows = (basic.data ?? []).map((x) => ({ ...x, video_url: null })) as Row[];
+  }
+  const sum = await supabase.rpc("short_likes_summary");
+  const list = !sum.error && Array.isArray(sum.data) ? (sum.data as Array<{ short_id: number; likes: number | string; liked: boolean }>) : [];
+  const by = new Map(list.map((r) => [r.short_id, r]));
+  return rows.map((x) => ({ ...x, likes: Number(by.get(x.id)?.likes ?? 0), liked: !!by.get(x.id)?.liked }));
 };
 export const getDaily = async () => must(await supabase.rpc("get_daily")) as Daily;
 export const saveAnswer = async (index: number, body: string) => must(await supabase.rpc("save_answer", { p_idx: index, p_body: body })) as Daily;
 export const getAnswers = async () =>
   must(await supabase.from("daily_answers").select("day, idx, question, body").order("day", { ascending: false }).order("idx", { ascending: false }).limit(20)) as MyAnswer[];
 
+export async function setShortLike(shortId: number, on: boolean) {
+  const { data } = await supabase.auth.getUser();
+  const uid = data.user?.id;
+  if (!uid) throw new Error("no user");
+  const r = on
+    ? await supabase.from("short_likes").upsert({ user_id: uid, short_id: shortId })
+    : await supabase.from("short_likes").delete().eq("user_id", uid).eq("short_id", shortId);
+  if (r.error) throw new Error(r.error.message);
+}
 export const getStats = async () => must(await supabase.rpc("get_stats")) as Stats;
 export async function recordRead(thoughtId: number) {
   const r = await supabase.rpc("record_read", { p_thought_id: thoughtId });

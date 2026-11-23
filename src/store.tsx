@@ -39,6 +39,7 @@ type Store = {
   notice: string;
   search: (q: string) => void;
   react: (t: api.Thought, kind: "like" | "save") => void;
+  reactShort: (s: api.Short) => void;
   changeAlphabet: (a: Alpha) => void;
   canWrite: boolean;
   publish: (p: PublishInput) => Promise<boolean>;
@@ -119,6 +120,17 @@ export function AppProvider({ children }: { children: ReactNode }) {
       });
   };
 
+  const reactShort: Store["reactShort"] = (sh) => {
+    const on = !sh.liked;
+    haptic.tap();
+    setShorts((v) => v.map((x) => (x.id === sh.id ? { ...x, liked: on, likes: x.likes + (on ? 1 : -1) } : x)));
+    api.setShortLike(sh.id, on).catch(() => {
+      setShorts((v) => v.map((x) => (x.id === sh.id ? sh : x)));
+      haptic.err();
+      flash("Amal bajarilmadi");
+    });
+  };
+
   const markRead = useCallback((id: number) => {
     api.recordRead(id).then(() => api.getStats().then(setStats)).catch(() => {});
   }, []);
@@ -175,7 +187,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   };
 
   const value = useMemo<Store>(
-    () => ({ status, loginError, profile, alphabet, theme, dark, setTheme, u, c, thoughts, shorts, stats, markRead, notice, search, react, changeAlphabet, canWrite, publish, remove, composer, setComposer }),
+    () => ({ status, loginError, profile, alphabet, theme, dark, setTheme, u, c, thoughts, shorts, stats, markRead, notice, search, react, reactShort, changeAlphabet, canWrite, publish, remove, composer, setComposer }),
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [status, loginError, profile, alphabet, theme, dark, setTheme, u, c, thoughts, shorts, stats, markRead, notice, canWrite, composer],
   );

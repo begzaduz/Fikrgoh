@@ -224,4 +224,25 @@ describe("Fikrnoma", () => {
     expect(document.documentElement.dataset.theme).toBeUndefined();
     localStorage.removeItem("fikrnoma-theme");
   });
+
+  it("Shorts: yoqtirish va ulashish tugmalari ishlaydi", async () => {
+    const open = vi.fn();
+    (window as any).Telegram.WebApp.openTelegramLink = open;
+    const { AppProvider } = await import("../src/store");
+    const { default: App } = await import("../src/App");
+    render(<AppProvider><App /></AppProvider>);
+    await waitFor(() => expect(screen.getByText("Töğri savol")).toBeTruthy(), { timeout: 4000 });
+
+    fireEvent.click(screen.getByRole("button", { name: "Shorts" }));
+    const like = await screen.findByRole("button", { name: /Yoqtiri[sş]/ });
+    expect(like.getAttribute("aria-pressed")).toBe("false");
+    fireEvent.click(like);
+    await waitFor(() => expect(screen.getByRole("button", { name: /Yoqtiri[sş]/ }).getAttribute("aria-pressed")).toBe("true"));
+    await waitFor(() => expect(writes.some((w) => w.url.startsWith("POST") && w.url.includes("/rest/v1/short_likes"))).toBe(true));
+
+    fireEvent.click(screen.getByRole("button", { name: /Ula[sş]i[sş]/ }));
+    expect(open).toHaveBeenCalledTimes(1);
+    expect(String(open.mock.calls[0][0])).toContain("https://t.me/share/url?url=");
+    expect(decodeURIComponent(String(open.mock.calls[0][0]))).toContain("t.me/fikrnomabot");
+  });
 });

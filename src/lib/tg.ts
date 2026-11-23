@@ -2,6 +2,7 @@ type WebApp = {
   initData: string;
   ready: () => void;
   expand: () => void;
+  openTelegramLink?: (url: string) => void;
   setHeaderColor?: (c: string) => void;
   setBackgroundColor?: (c: string) => void;
   HapticFeedback?: { impactOccurred: (s: string) => void; notificationOccurred: (s: string) => void };
@@ -28,4 +29,16 @@ export function tgUserId(initData: string): number | null {
   } catch {
     return null;
   }
+}
+
+/** Bot nomi (@BotFather dagi username, @siz). Boshqacha bo‘lsa .env da VITE_TG_BOT ni yozing. */
+export const BOT = (import.meta.env.VITE_TG_BOT as string | undefined) || "fikrnomabot";
+/** Short'ni Telegram orqali ulashadi (ro‘yxatdan chat tanlanadi). Telegramdan tashqarida: tizim ulashish oynasi yoki yangi oyna. */
+export function share(text: string, id: number) {
+  const link = `https://t.me/${BOT}?startapp=short_${id}`;
+  const url = `https://t.me/share/url?url=${encodeURIComponent(link)}&text=${encodeURIComponent(text)}`;
+  const w = tg();
+  if (w?.openTelegramLink) w.openTelegramLink(url);
+  else if (typeof navigator.share === "function") void navigator.share({ text, url: link }).catch(() => {});
+  else window.open(url, "_blank");
 }

@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { AnimatePresence } from "framer-motion";
 import { Home as HomeIcon, Moon, Plus, Sun, UserRound } from "lucide-react";
-import { Logo } from "./components/Logo";
 import { Composer } from "./components/Composer";
 import { Home } from "./pages/Home";
 import { Profile } from "./pages/Profile";
@@ -45,14 +44,18 @@ export default function App() {
   return (
     <div className="relative mx-auto flex h-full max-w-[560px] flex-col">
       <header className="flex items-center justify-between border-b border-line px-5 pb-1.5 pt-[calc(6px+var(--safe-top))]">
-        <span className="flex items-center gap-2.5">
-          <Logo size={30} />
-          <span className="font-display text-2xl font-bold">fikrnoma<span className="text-clay">.</span></span>
-        </span>
-        <button onClick={() => setTheme(dark ? "light" : "dark")} aria-label={dark ? u("Kunduzgi rejim") : u("Tungi rejim")}
-          className="-mr-2 flex h-11 w-11 items-center justify-center rounded-full text-muted">
-          {dark ? <Sun size={22} /> : <Moon size={22} />}
-        </button>
+        <span className="font-display text-[26px] font-semibold tracking-tight">fikrnomiya<span className="text-clay">.</span></span>
+        <div className="-mr-2 flex items-center">
+          {canWrite && tab !== "profile" && (
+            <button onClick={() => setComposer({ mode: "new" })} aria-label={u("Yangi fikr")} className="flex h-11 w-11 items-center justify-center rounded-full text-clay">
+              <Plus size={24} />
+            </button>
+          )}
+          <button onClick={() => setTheme(dark ? "light" : "dark")} aria-label={dark ? u("Kunduzgi rejim") : u("Tungi rejim")}
+            className="flex h-11 w-11 items-center justify-center rounded-full text-muted">
+            {dark ? <Sun size={22} /> : <Moon size={22} />}
+          </button>
+        </div>
       </header>
       <main className="min-h-0 flex-1 overflow-y-auto">
         {tab === "home" ? <Home /> : tab === "shorts" ? <Shorts /> : <Profile />}
@@ -70,12 +73,6 @@ export default function App() {
           );
         })}
       </nav>
-      {canWrite && tab !== "profile" && (
-        <button onClick={() => setComposer({ mode: "new" })} aria-label={u("Yangi fikr")}
-          className="absolute bottom-[calc(76px+env(safe-area-inset-bottom,0px))] right-4 z-40 flex h-14 w-14 items-center justify-center rounded-full bg-clay text-onclay shadow-lg">
-          <Plus size={26} />
-        </button>
-      )}
       <AnimatePresence>{composer && <Composer key={composer.mode === "edit" ? `${composer.kind}-${composer.id}` : "new"} state={composer} onClose={() => setComposer(null)} />}</AnimatePresence>
       {notice && <div role="status" className="fixed left-1/2 top-20 z-[60] -translate-x-1/2 rounded-full bg-ink px-4 py-2 text-[13px] font-semibold text-paper">{u(notice)}</div>}
     </div>

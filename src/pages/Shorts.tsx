@@ -1,8 +1,9 @@
 import { useEffect, useRef, useState } from "react";
-import { Volume2, VolumeX } from "lucide-react";
+import { Heart, Send, Volume2, VolumeX } from "lucide-react";
 import { AdminMenu } from "../components/AdminMenu";
 import { CATEGORY_LABEL } from "../components/ThoughtCard";
 import { proxied, type Short } from "../lib/api";
+import { share } from "../lib/tg";
 import { useApp } from "../store";
 
 const TONE = {
@@ -12,23 +13,17 @@ const TONE = {
   clay: "bg-[#a2461f] text-[#f3ecdd]",
 } as const;
 
+/** Tugmalar fonining rangi: matn rangidan olinadi, shuning uchun ham yorug‘, ham qorong‘i kartada ko‘rinadi. */
+const soft = { background: "color-mix(in srgb, currentColor 16%, transparent)" } as const;
+
+const strong = { background: "color-mix(in srgb, currentColor 32%, transparent)" } as const;
+
 function ShortCard({ s }: { s: Short }) {
-  const { u, c, canWrite, setComposer, remove } = useApp();
+  const { u, c, canWrite, setComposer, remove, reactShort } = useApp();
   const box = useRef<HTMLElement>(null);
   const vid = useRef<HTMLVideoElement>(null);
   const [muted, setMuted] = useState(true);
   const [failed, setFailed] = useState(false);
-  const [src, setSrc] = useState(s.video_url);
-
-  // Video almashtirilsa (tahrirlash), holat yangilanadi.
-  useEffect(() => { setSrc(s.video_url); setFailed(false); }, [s.video_url]);
-
-  // Avval to‘g‘ridan-to‘g‘ri havola; ochilmasa (supabase.co yopiq tarmoq) o‘z proksimiz (/sb) orqali, u ham ochilmasa xato.
-  const onVideoError = () => {
-    const alt = s.video_url ? proxied(s.video_url) : null;
-    if (alt && alt !== src) setSrc(alt);
-    else setFailed(true);
-  };
 
   // Faqat ko‘rinib turgan video ijro bo‘ladi (trafik va batareyani tejaydi).
   useEffect(() => {
@@ -38,30 +33,44 @@ function ShortCard({ s }: { s: Short }) {
     const io = new IntersectionObserver(([e]) => { if (e && e.intersectionRatio > 0.6) void v.play().catch(() => {}); else v.pause(); }, { threshold: [0, 0.6, 1] });
     io.observe(el);
     return () => io.disconnect();
-  }, [src, failed]);
+  }, [s.video_url]);
 
-  const hasVideo = !!src && !failed;
+  const hasVideo = !!s.video_url && !failed;
+  const btn = "flex h-12 w-12 items-center justify-center rounded-full";
+  const label = (cat: string) => u(CATEGORY_LABEL[cat as keyof typeof CATEGORY_LABEL]);
   return (
-    <section ref={box} className={`relative flex h-full snap-start flex-col justify-end gap-3 p-7 ${hasVideo ? "bg-black text-white" : TONE[s.tone]}`}>
+    <section ref={box} className={`relative flex h-full snap-start flex-col px-6 pb-8 pt-6 ${hasVideo ? "bg-black text-white" : TONE[s.tone]}`}>
       {hasVideo && (
         <>
-          <video key={src} ref={vid} src={src!} muted={muted} loop playsInline preload="metadata" onError={onVideoError} className="absolute inset-0 h-full w-full object-cover" />
+          <video ref={vid} src={s.video_url!} muted={muted} loop playsInline preload="metadata" onError={() => setFailed(true)} className="absolute inset-0 h-full w-full object-cover" />
           <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/10 to-black/30" aria-hidden="true" />
         </>
       )}
-      {s.video_url && failed && <p className="relative text-[12px] opacity-80">{u("Video ochilmadi.")}</p>}
-      <div className="relative flex items-start justify-between">
-        <span className="text-[12px] font-semibold uppercase tracking-[2px] opacity-90">{u(CATEGORY_LABEL[s.category])}</span>
+      <span className="relative text-[12px] font-semibold uppercase tracking-[2px] opacity-90">{label(s.category)}</span>
+      {s.video_url && failed && <p className="relative mt-2 text-[12px] opacity-80">{u("Video ochilmadi.")}</p>}
+
+      {/* Matnli kartada matn o‘rtada, videoda pastda (o‘ng tomonda tugmalar uchun joy qoldiriladi). */}
+      <div className={`relative flex flex-1 pr-16 ${hasVideo ? "items-end" : "items-center"}`}>
+        {s.quote && <p className="font-serif text-[27px] font-semibold leading-snug text-pretty">{c(s.quote)}</p>}
       </div>
-      <div className="relative flex items-end justify-between gap-3">
-        {s.quote && <p className="font-serif text-[26px] font-semibold leading-snug">{c(s.quote)}</p>}
+
+      <div className="absolute bottom-8 right-4 z-10 flex flex-col items-center gap-4">
+        <div className="flex flex-col items-center gap-1">
+          <button className={btn} style={s.liked ? strong : soft} aria-label={u("Yoqtirish")} aria-pressed={s.liked} onClick={() => reactShort(s)}>
+            <Heart size={24} fill={s.liked ? "currentColor" : "none"} />
+          </button>
+          <span className="min-h-[16px] text-[12px] font-semibold opacity-90">{s.likes > 0 ? s.likes : ""}</span>
+        </div>
+        <button className={btn} style={soft} aria-label={u("Ulashish")} onClick={() => share(s.quote ? c(s.quote) : "fikrnomiya", s.id)}>
+          <Send size={22} />
+        </button>
         {hasVideo && (
-          <button aria-label={muted ? u("Ovozni yoqish") : u("Ovozni o‘chirish")} aria-pressed={!muted} onClick={() => setMuted((m) => !m)}
-            className="ml-auto flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-black/40 text-white">
-            {muted ? <VolumeX size={20} /> : <Volume2 size={20} />}
+          <button className={btn} style={soft} aria-label={muted ? u("Ovozni yoqish") : u("Ovozni o‘chirish")} aria-pressed={!muted} onClick={() => setMuted((m) => !m)}>
+            {muted ? <VolumeX size={22} /> : <Volume2 size={22} />}
           </button>
         )}
       </div>
+
       {canWrite && (
         <div className="absolute right-3 top-3 z-10">
           <AdminMenu light onEdit={() => setComposer({ mode: "edit", kind: "short", id: s.id, category: s.category, quote: s.quote, tone: s.tone, video_url: s.video_url })} onDelete={() => remove("short", s.id)} />
