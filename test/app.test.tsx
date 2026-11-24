@@ -49,12 +49,11 @@ beforeAll(() => {
 });
 
 
-/** Intro ekranidan "Kirish" tugmasini bosib o‘tadi (ma’lumot yuklanguncha tugma o‘chiq turadi). */
+/** Intro (faqat logo) o‘zi ochiladi: animatsiyasiz rejim stub qilinadi, ma’lumot yuklangach intro yo‘qoladi. */
 async function boot(ui: React.ReactElement) {
+  window.matchMedia = ((q: string) => ({ matches: /reduce/.test(q), media: q, addEventListener() {}, removeEventListener() {}, addListener() {}, removeListener() {}, onchange: null, dispatchEvent: () => false })) as any;
   render(ui);
-  const btn = await screen.findByRole("button", { name: /Kiri[sş]/ });
-  await waitFor(() => expect((btn as HTMLButtonElement).disabled).toBe(false), { timeout: 4000 });
-  fireEvent.click(btn);
+  await waitFor(() => expect(document.querySelector("[data-intro]")).toBeNull(), { timeout: 4000 });
 }
 
 describe("Fikrnoma", () => {
@@ -278,17 +277,16 @@ describe("Fikrnoma", () => {
     expect(decodeURIComponent(String(open.mock.calls[0][0]))).toContain("t.me/fikrnomabot");
   });
 
-  it("kirish ekrani: tugma bosilmaguncha ilova ochilmaydi", async () => {
+  it("kirish ekrani: faqat logo (matn va tugmasiz), ma'lumot yuklangach o'zi ochiladi", async () => {
     const { AppProvider } = await import("../src/store");
     const { default: App } = await import("../src/App");
     render(<AppProvider><App /></AppProvider>);
-    const btn = (await screen.findByRole("button", { name: /Kiri[sş]/ })) as HTMLButtonElement;
-    expect(screen.getByText("Axborot emas.")).toBeTruthy();
-    await waitFor(() => expect(btn.disabled).toBe(false), { timeout: 4000 });
-    expect(document.querySelector("[inert]")).not.toBeNull();             // orqadagi ilova bosilmaydi
-    fireEvent.click(btn);
-    await waitFor(() => expect(document.querySelector("[inert]")).toBeNull());
-    await waitFor(() => expect(screen.queryByRole("button", { name: /Kiri[sş]/ })).toBeNull());   // intro yopildi
+    expect(screen.getByRole("img", { name: "fikrgoh" })).toBeTruthy();
+    expect(screen.queryByText("Axborot emas.")).toBeNull();
+    expect(screen.queryByRole("button", { name: /Kiri[sş]/ })).toBeNull();      // tugma yo'q
+    expect(document.querySelector("[inert]")).not.toBeNull();                    // intro ochiq: orqadagi ilova bosilmaydi
+    await waitFor(() => expect(document.querySelector("[data-intro]")).toBeNull(), { timeout: 4000 });
+    expect(document.querySelector("[inert]")).toBeNull();
     expect(screen.getByRole("button", { name: "Profil" })).toBeTruthy();
   });
 });

@@ -31,10 +31,10 @@ export default function App() {
   else if (status === "guest")
     content = (
       <div className="p-8 text-sm">
-        <Wordmark className="h-[13px] w-auto" />
+        <Wordmark className="h-[22px] w-auto" />
         <p className="mt-8">{u("Kirish amalga oshmadi.")}</p>
         {loginError && <p className="mt-3 break-words text-muted">{loginError}</p>}
-        <p className="mt-3 text-muted">{u("Fikrnomiya'ni Telegram ichida oching.")}</p>
+        <p className="mt-3 text-muted">{u("Fikrgoh'ni Telegram ichida oching.")}</p>
         <p className="mt-8 text-[12px] text-muted">v {__BUILD__}</p>
       </div>
     );
@@ -56,7 +56,7 @@ export default function App() {
           <button onClick={() => setTheme(dark ? "light" : "dark")} aria-label={dark ? u("Kunduzgi rejim") : u("Tungi rejim")} className="glass flex h-11 w-11 items-center justify-center rounded-full text-ink">
             {dark ? <Sun size={20} /> : <Moon size={20} />}
           </button>
-          <div className="glass flex h-11 items-center rounded-full px-5"><Wordmark className="h-[11px] w-auto" /></div>
+          <div className="glass flex h-11 items-center rounded-full px-5"><Wordmark className="h-[20px] w-auto" /></div>
           <button onClick={() => setTab("profile")} aria-label={u("Mening profilim")} className="flex h-11 w-11 items-center justify-center rounded-full bg-clay text-[16px] font-bold text-onclay">
             {(profile?.first_name ?? "F").slice(0, 1).toUpperCase()}
           </button>
