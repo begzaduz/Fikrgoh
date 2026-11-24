@@ -4,12 +4,6 @@ import { tg, tgUserId } from "./tg";
 export type Category = "fikr" | "mindset" | "madaniyat";
 export type Thought = { id: number; category: Category; title: string; body: string; read_minutes: number; created_at: string; likes: number; liked: boolean; saved: boolean };
 export type Short = { id: number; category: Category; quote: string; tone: "sand" | "sage" | "ink" | "clay"; video_url: string | null; likes: number; liked: boolean };
-export type Daily = {
-  day: string;
-  questions: Array<{ index: number; text: string; answer: string | null }>;
-  done: number; streak: number; points: number; level: 0 | 1 | 2; levelFrom: number; levelTo: number;
-};
-export type MyAnswer = { day: string; idx: number; question: string; body: string };
 export type Stats = { reads: number; categories: number; streak: number; today: boolean; week: boolean[]; todayIndex: number; level: 0 | 1 | 2; levelTo: number | null };
 export type Profile = { id: string; first_name: string; username: string | null; role: "reader" | "admin"; alphabet: "new" | "old" };
 
@@ -54,7 +48,10 @@ export const setAlphabet = async (alphabet: "new" | "old") => {
   const r = await supabase.from("profiles").update({ alphabet }).not("id", "is", null);
   if (r.error) throw new Error(r.error.message);
 };
-export const getFeed = async (q = "") => must(await supabase.rpc("feed", { p_q: q || null, p_limit: 30 })) as Thought[];
+export const PAGE = 30;
+/** offset > 0 bo‘lsa 0005_feed_offset.sql kerak; birinchi sahifa eski bazada ham ishlaydi. */
+export const getFeed = async (q = "", offset = 0) =>
+  must(await supabase.rpc("feed", { p_q: q || null, p_limit: PAGE, ...(offset > 0 ? { p_offset: offset } : {}) })) as Thought[];
 /** video_url ustuni (0002_media.sql) hali yaratilmagan bo‘lsa ham ro‘yxat ishlashi uchun zaxira so‘rov. Yoqtirishlar (0004) bo‘lmasa 0 deb olinadi. */
 export const getShorts = async (): Promise<Short[]> => {
   type Row = Omit<Short, "likes" | "liked">;
@@ -71,14 +68,9 @@ export const getShorts = async (): Promise<Short[]> => {
   const by = new Map(list.map((r) => [r.short_id, r]));
   return rows.map((x) => ({ ...x, likes: Number(by.get(x.id)?.likes ?? 0), liked: !!by.get(x.id)?.liked }));
 };
-export const getDaily = async () => must(await supabase.rpc("get_daily")) as Daily;
-export const saveAnswer = async (index: number, body: string) => must(await supabase.rpc("save_answer", { p_idx: index, p_body: body })) as Daily;
-export const getAnswers = async () =>
-  must(await supabase.from("daily_answers").select("day, idx, question, body").order("day", { ascending: false }).order("idx", { ascending: false }).limit(20)) as MyAnswer[];
 
 export async function setShortLike(shortId: number, on: boolean) {
-  const { data } = await supabase.auth.getUser();
-  const uid = data.user?.id;
+  const uid = (await supabase.auth.getSession()).data.session?.user.id;
   if (!uid) throw new Error("no user");
   const r = on
     ? await supabase.from("short_likes").upsert({ user_id: uid, short_id: shortId })
@@ -101,8 +93,7 @@ export async function recordRead(thoughtId: number) {
 
 export async function setReaction(thoughtId: number, kind: "like" | "save", on: boolean) {
   const table = kind === "like" ? "thought_likes" : "thought_saves";
-  const { data } = await supabase.auth.getUser();
-  const uid = data.user?.id;
+  const uid = (await supabase.auth.getSession()).data.session?.user.id;
   if (!uid) throw new Error("no user");
   const r = on
     ? await supabase.from(table).upsert({ user_id: uid, thought_id: thoughtId })

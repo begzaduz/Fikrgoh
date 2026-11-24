@@ -11,7 +11,7 @@ const LEVELS = ["Kuzatuvchi", "Mulohazachi", "Mutafakkir"];
 type Filter = "all" | Category;
 
 export function Home({ goProfile }: { goProfile: () => void }) {
-  const { thoughts, search, markRead, stats, history, profile, pendingOpen, clearOpen, u, c } = useApp();
+  const { thoughts, search, hasMore, loadMore, markRead, stats, history, profile, pendingOpen, clearOpen, u, c } = useApp();
   const [openId, setOpenId] = useState<number | null>(null);
   const [q, setQ] = useState("");
   const [filter, setFilter] = useState<Filter>("all");
@@ -124,6 +124,9 @@ export function Home({ goProfile }: { goProfile: () => void }) {
       </div>
       {list.length === 0 && <p className="mt-4 text-sm text-muted">{u("Hozircha fikr topilmadi.")}</p>}
       {list.map((t) => <ThoughtCard key={t.id} t={t} onOpen={() => setOpenId(t.id)} />)}
+      {hasMore && (
+        <button className="glass mx-auto mt-5 flex min-h-[48px] items-center rounded-full px-6 text-[14px] font-semibold" onClick={loadMore}>{u("Yana ko‘rsatish")}</button>
+      )}
     </div>
   );
 }

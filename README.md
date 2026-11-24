@@ -8,7 +8,7 @@ Matnlar **yangi o‘zbek lotin alifbosida** (Ö Ğ Ş Ç); foydalanuvchi sozlama
 ## Ishga tushirish
 
 1. `cp .env.example .env` va `VITE_SUPABASE_ANON_KEY`ni yozing (Supabase → Project Settings → API). `service_role` kalitni hech qayerga qo‘ymang.
-2. Supabase → SQL Editor: avval `supabase/migrations/0001_init.sql`, keyin `0002_media.sql`, `0003_admin.sql` (admin Telegram ID'ni shu fayl ichida o‘zgartiring), oxirida `supabase/seed.sql` ni ishga tushiring.
+2. Supabase → SQL Editor: avval `supabase/migrations/0001_init.sql`, keyin `0002_media.sql`, `0003_admin.sql` (admin Telegram ID'ni shu fayl ichida o‘zgartiring), `0003_reads.sql`, `0004_short_likes.sql`, `0005_feed_offset.sql`, oxirida `supabase/seed.sql` ni ishga tushiring.
 3. Kirish funksiyasi (Supabase CLI bilan):
    ```
    supabase link --project-ref svihzrgndgnketairtog
@@ -26,8 +26,8 @@ Matn eski alifboda yozilsa, avtomatik yangi alifboga o‘giriladi (ko‘rib chiq
 Zaxira yo‘l: Supabase → Table Editor → `thoughts` / `shorts` (matn yangi alifboda yoziladi).
 
 ## Tekshiruvlar
-- `npm test` — alifbo o‘girgichi (5 test). `npm run test:ui` — kirish, kunlik savollar, admin yozishi, video tekshiruvi (soxta Telegram/Supabase bilan).
-- SQL sxema va xavfsizlik qoidalari Postgres 16'da sinalgan (RLS, qidiruv, ball, streak).
+- `npm test` — alifbo o‘girgichi, Telegram ID, video kodek tekshiruvi (3 ta video testi namuna fayllar bo‘lmasa o‘tkazib yuboriladi). `npm run test:ui` — kirish, fikrlar lentasi, admin yozishi/tahrirlashi, video tekshiruvi (soxta Telegram/Supabase bilan).
+- SQL sxema va xavfsizlik qoidalari Postgres 16'da sinalgan (RLS, qidiruv, streak).
 - Ilova Telegram ichida ishlaydi (kirish, admin yozishi). **Real telefonda sinalmagan:** video ijrosi (mobil internet, turli kodeklar) va `/sb` proksi orqali zaxira yo‘li.
 
 ## Alifbo haqida

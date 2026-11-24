@@ -23,7 +23,7 @@ export function Profile() {
   const saved = thoughts.filter((t) => t.saved).length;
   const reads = stats?.reads ?? 0;
   const left = stats?.levelTo ? stats.levelTo - reads : 0;
-  const pct = stats?.levelTo ? Math.min(100, Math.round((reads / stats.levelTo) * 100)) : 100;
+  const activeDays = stats ? stats.week.filter(Boolean).length : 0;
   const dates = stats ? weekDates(stats.todayIndex) : [];
   const counts = stats ? stats.week.map((on, i) => history.filter((h) => h.day === dates[i]).length || (on ? 1 : 0)) : [];
   const rows = sel === null ? history.slice(0, 8) : history.filter((h) => h.day === dates[sel]);
@@ -80,7 +80,7 @@ export function Profile() {
             </div>
             <div className="glass relative rounded-[28px] p-4">
               <p className="text-[15px] font-semibold">{u("Haftalik faollik")}</p>
-              <span className="absolute right-3 top-3 rounded-full bg-sand px-2 py-0.5 text-[11px] font-semibold text-muted">{pct}%</span>
+              <span className="absolute right-3 top-3 rounded-full bg-sand px-2 py-0.5 text-[11px] font-semibold text-muted">{activeDays}/7</span>
               <Bars values={counts} className="mt-5 h-12 w-full text-clay" />
             </div>
             <div className="glass rounded-[28px] p-4">

@@ -11,6 +11,7 @@ const DAILY = { day: "2026-11-21", done: 0, streak: 0, points: 0, level: 0, leve
 const FEED = [{ id: 1, category: "fikr", title: "Töğri savol", body: "Matn matn matn matn matn matn matn", read_minutes: 1, created_at: "2026-11-21", likes: 2, liked: false, saved: false }];
 const STATS = { reads: 2, categories: 1, streak: 3, today: true, week: [false, false, true, true, true, false, false], todayIndex: 4, level: 0, levelTo: 5 };
 const calls: string[] = [];
+let bigFeed = false; // sahifalash testi uchun: birinchi sahifa 30 ta, keyingisi 1 ta
 const writes: Array<{ url: string; body: any }> = [];
 afterEach(cleanup);
 const json = (b: unknown, status = 200) => new Response(JSON.stringify(b), { status, headers: { "Content-Type": "application/json" } });
@@ -27,7 +28,11 @@ beforeAll(() => {
     if ((m === "PATCH" || m === "DELETE") && url.includes("/rest/v1/")) return json([{ id: 1 }]);
     if (url.includes("/functions/v1/swift-processor")) return json({ access_token: jwt, refresh_token: "r" });
     if (url.includes("/auth/v1/user")) return json(USER);
-    if (url.includes("/rpc/feed")) return json(FEED);
+    if (url.includes("/rpc/feed")) {
+      if (!bigFeed) return json(FEED);
+      const b = init?.body ? JSON.parse(init.body) : {};
+      return json(b.p_offset ? [{ ...FEED[0], id: 101, title: "Eski fikr" }] : Array.from({ length: 30 }, (_, i) => ({ ...FEED[0], id: i + 1, title: `Fikr ${i + 1}` })));
+    }
     if (url.includes("/rest/v1/thought_reads")) return json([{ day: "2026-11-20", thought_id: 1, thoughts: { title: "Töğri savol" } }]);
     if (url.includes("/rpc/get_stats")) return json(STATS);
     if (url.includes("/rpc/record_read")) return json(null, 204);
@@ -64,6 +69,23 @@ describe("Fikrnoma", () => {
 
     expect(screen.queryByText(/Bugungi 5 savol|Bo[sş]la[sş]/)).toBeNull();      // kunlik savollar olib tashlangan
     expect(calls.some((c) => c.includes("/rpc/get_daily"))).toBe(false);
+  });
+
+  it("lenta 30 tadan ko‘p bo‘lsa, \"Yana ko‘rsatish\" keyingi sahifani yuklaydi", async () => {
+    bigFeed = true;
+    try {
+      const { AppProvider } = await import("../src/store");
+      const { default: App } = await import("../src/App");
+      render(<AppProvider><App /></AppProvider>);
+      await waitFor(() => expect(screen.getByText("Fikr 1")).toBeTruthy(), { timeout: 4000 });
+      expect(screen.queryByText("Eski fikr")).toBeNull();
+      fireEvent.click(screen.getByRole("button", { name: /Yana k[oö]/ }));
+      await waitFor(() => expect(screen.getByText("Eski fikr")).toBeTruthy());
+      expect(calls.some((c) => c.includes("/rpc/feed"))).toBe(true);
+      expect(screen.queryByRole("button", { name: /Yana k[oö]/ })).toBeNull(); // 1 ta keldi: boshqa sahifa yo‘q
+    } finally {
+      bigFeed = false;
+    }
   });
 
   it("admin eski alifboda yozadi, matn yangi alifboda joylanadi", async () => {

@@ -45,6 +45,8 @@ type Store = {
   markRead: (id: number) => void;
   notice: string;
   search: (q: string) => void;
+  hasMore: boolean;
+  loadMore: () => void;
   react: (t: api.Thought, kind: "like" | "save") => void;
   reactShort: (s: api.Short) => void;
   changeAlphabet: (a: Alpha) => void;
@@ -73,6 +75,12 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [loginError, setLoginError] = useState("");
   const [composer, setComposer] = useState<ComposerState>(null);
   const timer = useRef<number>();
+  const thoughtsRef = useRef<api.Thought[]>([]);
+  thoughtsRef.current = thoughts;
+  const [hasMore, setHasMore] = useState(false);
+  const query = useRef("");      // hozirgi qidiruv matni
+  const feedSeq = useRef(0);     // eskirgan javoblarni tashlab yuborish uchun
+  const loadingMore = useRef(false);
   const [theme, setThemeState] = useState<Theme>(loadTheme);
   const [sysDark, setSysDark] = useState(systemDark);
   const dark = theme === "dark" || (theme === "auto" && sysDark);
@@ -108,7 +116,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       }
       const [p, f, s, st, h] = await Promise.allSettled([api.getProfile(), api.getFeed(), api.getShorts(), api.getStats(), api.getHistory()]);
       if (p.status === "fulfilled") setProfile(p.value);
-      if (f.status === "fulfilled") setThoughts(f.value);
+      if (f.status === "fulfilled") { setThoughts(f.value); setHasMore(f.value.length >= api.PAGE); }
       if (s.status === "fulfilled") setShorts(s.value);
       if (st.status === "fulfilled") setStats(st.value);
       else setStatsError(st.reason instanceof Error ? st.reason.message : "noma’lum xato");
@@ -125,7 +133,25 @@ export function AppProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const search = useCallback((q: string) => {
-    api.getFeed(q).then(setThoughts).catch(() => flash("Qidirib bo‘lmadi"));
+    query.current = q;
+    const seq = ++feedSeq.current;
+    api.getFeed(q)
+      .then((rows) => { if (seq === feedSeq.current) { setThoughts(rows); setHasMore(rows.length >= api.PAGE); } })
+      .catch(() => { if (seq === feedSeq.current) flash("Qidirib bo‘lmadi"); });
+  }, [flash]);
+
+  const loadMore = useCallback(() => {
+    if (loadingMore.current) return;
+    loadingMore.current = true;
+    const seq = feedSeq.current;
+    api.getFeed(query.current, thoughtsRef.current.length)
+      .then((rows) => {
+        if (seq !== feedSeq.current) return;
+        setThoughts((v) => [...v, ...rows.filter((r) => !v.some((x) => x.id === r.id))]);
+        setHasMore(rows.length >= api.PAGE);
+      })
+      .catch(() => flash("Yana yuklab bo‘lmadi"))
+      .finally(() => { loadingMore.current = false; });
   }, [flash]);
 
   const react: Store["react"] = (t, kind) => {
@@ -169,7 +195,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
         const body = { category: p.category, title: p.title, body: p.body };
         if (p.id) await api.updateThought(p.id, body);
         else await api.createThought(profile.id, body);
-        setThoughts(await api.getFeed());
+        const rows = await api.getFeed(query.current);
+        feedSeq.current++;
+        setThoughts(rows);
+        setHasMore(rows.length >= api.PAGE);
       } else {
         const body = { category: p.category, quote: p.quote, tone: p.tone, video_url: p.videoUrl };
         if (p.id) await api.updateShort(p.id, body);
@@ -208,9 +237,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
   };
 
   const value = useMemo<Store>(
-    () => ({ status, loginError, profile, alphabet, theme, dark, setTheme, u, c, thoughts, shorts, stats, statsError, reloadStats, history, pendingOpen, requestOpen, clearOpen, markRead, notice, search, react, reactShort, changeAlphabet, canWrite, publish, remove, composer, setComposer }),
+    () => ({ status, loginError, profile, alphabet, theme, dark, setTheme, u, c, thoughts, shorts, stats, statsError, reloadStats, history, pendingOpen, requestOpen, clearOpen, markRead, notice, search, hasMore, loadMore, react, reactShort, changeAlphabet, canWrite, publish, remove, composer, setComposer }),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [status, loginError, profile, alphabet, theme, dark, setTheme, u, c, thoughts, shorts, stats, statsError, reloadStats, history, pendingOpen, requestOpen, clearOpen, markRead, notice, canWrite, composer],
+    [status, loginError, profile, alphabet, theme, dark, setTheme, u, c, thoughts, shorts, stats, statsError, reloadStats, history, pendingOpen, requestOpen, clearOpen, markRead, notice, hasMore, canWrite, composer],
   );
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 }
