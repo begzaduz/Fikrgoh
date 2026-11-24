@@ -37,3 +37,8 @@ button:focus-visible, textarea:focus-visible, input:focus-visible { outline: 2px
 .featured { background: linear-gradient(150deg, #5b5bd6 0%, #3b3fa8 48%, #1d8f9b 100%); color: #fff; }
 .no-scrollbar { scrollbar-width: none; } .no-scrollbar::-webkit-scrollbar { display: none; }
 ::selection { background: var(--clay); color: var(--onclay); }
+
+/* Intro: yulduzlar miltillashi (animatsiyani kamaytirish yoqilgan bo‘lsa o‘chiq) */
+@keyframes fg-twinkle { 0%, 100% { opacity: .15; transform: scale(.7); } 50% { opacity: .9; transform: scale(1.15); } }
+.fg-tw { animation: fg-twinkle var(--t, 4s) ease-in-out var(--d, 0s) infinite; }
+@media (prefers-reduced-motion: reduce) { .fg-tw { animation: none; opacity: .4; } }

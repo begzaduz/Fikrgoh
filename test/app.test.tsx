@@ -288,5 +288,7 @@ describe("Fikrnoma", () => {
     await waitFor(() => expect(document.querySelector("[data-intro]")).toBeNull(), { timeout: 4000 });
     expect(document.querySelector("[inert]")).toBeNull();
     expect(screen.getByRole("button", { name: "Profil" })).toBeTruthy();
+    const wrap = screen.getByRole("button", { name: "Profil" }).closest("div.h-full") as HTMLElement;
+    await waitFor(() => expect(["", "none"]).toContain(wrap.style.transform));   // fixed oynalar buzilmasligi uchun transform qolmasin
   });
 });

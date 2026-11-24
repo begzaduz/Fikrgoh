@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { AnimatePresence } from "framer-motion";
+import { AnimatePresence, motion } from "framer-motion";
 import { Bookmark, Clapperboard, House, Moon, Plus, Sparkles, Sun, UserRound } from "lucide-react";
 import { Composer } from "./components/Composer";
 import { Intro } from "./components/Intro";
@@ -16,6 +16,7 @@ export default function App() {
   const { status, loginError, notice, u, canWrite, composer, setComposer, dark, setTheme, profile, thoughts, requestOpen } = useApp();
   const [tab, setTab] = useState<Tab>("home");
   const [entered, setEntered] = useState(false);
+  const [opening, setOpening] = useState(false);
 
   /** Markaziy tugma: admin uchun "yangi fikr", o‘quvchi uchun tasodifiy fikr. */
   const center = () => {
@@ -83,8 +84,10 @@ export default function App() {
   return (
     <>
       {/* Intro ochiq turganda orqadagi ilova bosilmaydi va ekran o‘qigichga ko‘rinmaydi. */}
-      <div className="h-full" {...(!entered ? ({ inert: "" } as object) : {})}>{content}</div>
-      <AnimatePresence>{!entered && <Intro key="intro" ready={status !== "loading"} onEnter={() => setEntered(true)} />}</AnimatePresence>
+      {/* Parda ochila boshlaganda bosh sahifa biroz kattaroqdan "joyiga tushadi" (tugagach transform qolmaydi). */}
+      <motion.div className="h-full" initial={false} animate={{ scale: opening ? 1 : 1.08, opacity: opening ? 1 : 0.5 }} transition={{ duration: 1.2, ease: [0.16, 1, 0.3, 1] }}
+        {...(!entered ? ({ inert: "" } as object) : {})}>{content}</motion.div>
+      <AnimatePresence>{!entered && <Intro key="intro" ready={status !== "loading"} onOpen={() => setOpening(true)} onEnter={() => setEntered(true)} />}</AnimatePresence>
     </>
   );
 }
