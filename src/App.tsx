@@ -87,7 +87,7 @@ export default function App() {
       {/* Parda ochila boshlaganda bosh sahifa biroz kattaroqdan "joyiga tushadi" (tugagach transform qolmaydi). */}
       <motion.div className="h-full" initial={false} animate={{ scale: opening ? 1 : 1.08, opacity: opening ? 1 : 0.5 }} transition={{ duration: 1.2, ease: [0.16, 1, 0.3, 1] }}
         {...(!entered ? ({ inert: "" } as object) : {})}>{content}</motion.div>
-      <AnimatePresence>{!entered && <Intro key="intro" ready={status !== "loading"} onOpen={() => setOpening(true)} onEnter={() => setEntered(true)} />}</AnimatePresence>
+      <AnimatePresence>{!entered && <Intro key="intro" ready={status !== "loading"} onOpen={() => setOpening(true)} onEnter={() => { setOpening(true); setEntered(true); }} />}</AnimatePresence>
     </>
   );
 }
