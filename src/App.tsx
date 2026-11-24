@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { Bookmark, Clapperboard, House, Moon, Plus, Sparkles, Sun, UserRound } from "lucide-react";
+import { Bookmark, Clapperboard, House, Plus, Search, Sparkles, UserRound, X } from "lucide-react";
 import { Composer } from "./components/Composer";
 import { Intro } from "./components/Intro";
 import { Wordmark } from "./components/Wordmark";
@@ -13,8 +13,10 @@ import { useApp } from "./store";
 type Tab = "home" | "shorts" | "saved" | "profile";
 
 export default function App() {
-  const { status, loginError, notice, u, canWrite, composer, setComposer, dark, setTheme, profile, thoughts, requestOpen } = useApp();
+  const { status, loginError, notice, u, canWrite, composer, setComposer, thoughts, requestOpen } = useApp();
   const [tab, setTab] = useState<Tab>("home");
+  const [searching, setSearching] = useState(false);
+  const [q, setQ] = useState("");
   const [entered, setEntered] = useState(false);
   const [opening, setOpening] = useState(false);
 
@@ -23,6 +25,12 @@ export default function App() {
     if (canWrite) return setComposer({ mode: "new" });
     const t = thoughts[Math.floor(Math.random() * thoughts.length)];
     if (t) { requestOpen(t.id); setTab("home"); }
+  };
+
+  const toggleSearch = () => {
+    if (searching) { setSearching(false); setQ(""); return; }
+    setTab("home");
+    setSearching(true);
   };
 
   let content;
@@ -53,17 +61,19 @@ export default function App() {
     const ic = (I: typeof House, id: Tab) => <I size={26} strokeWidth={tab === id ? 2.2 : 1.7} />;
     content = (
       <div className="relative mx-auto flex h-full max-w-[560px] flex-col">
-        <header className="flex items-center justify-between px-4 pb-1 pt-[calc(8px+var(--safe-top))]">
-          <button onClick={() => setTheme(dark ? "light" : "dark")} aria-label={dark ? u("Kunduzgi rejim") : u("Tungi rejim")} className="glass flex h-11 w-11 items-center justify-center rounded-full text-ink">
-            {dark ? <Sun size={20} /> : <Moon size={20} />}
-          </button>
-          <div className="glass flex h-11 items-center rounded-full px-5"><Wordmark className="h-[20px] w-auto" /></div>
-          <button onClick={() => setTab("profile")} aria-label={u("Mening profilim")} className="flex h-11 w-11 items-center justify-center rounded-full bg-clay text-[16px] font-bold text-onclay">
-            {(profile?.first_name ?? "F").slice(0, 1).toUpperCase()}
+        <header className="flex min-h-[52px] items-center gap-2 px-5 pb-1 pt-[calc(8px+var(--safe-top))]">
+          {searching ? (
+            <input autoFocus value={q} onChange={(e) => setQ(e.target.value)} placeholder={u("Fikrlardan qidirish")} aria-label={u("Qidirish")}
+              className="h-11 min-w-0 flex-1 bg-transparent text-base text-ink outline-none placeholder:text-muted" />
+          ) : (
+            <Wordmark className="h-[22px] w-auto" />
+          )}
+          <button onClick={toggleSearch} aria-label={searching ? u("Yopish") : u("Qidirish")} className="ml-auto flex h-11 w-11 shrink-0 items-center justify-center text-ink">
+            {searching ? <X size={24} /> : <Search size={24} />}
           </button>
         </header>
         <main className="min-h-0 flex-1 overflow-y-auto">
-          {tab === "home" ? <Home goProfile={() => setTab("profile")} /> : tab === "shorts" ? <Shorts /> : tab === "saved" ? <Saved onOpen={() => setTab("home")} /> : <Profile />}
+          {tab === "home" ? <Home q={q} /> : tab === "shorts" ? <Shorts /> : tab === "saved" ? <Saved onOpen={() => setTab("home")} /> : <Profile />}
         </main>
         <nav className="glass mx-3 mb-[calc(8px+env(safe-area-inset-bottom,0px))] mt-1 flex items-center rounded-[30px] px-2">
           {item("home", "Bosh sahifa", ic(House, "home"))}

@@ -243,14 +243,15 @@ describe("Fikrnoma", () => {
     await boot(<AppProvider><App /></AppProvider>);
     await waitFor(() => expect(screen.getByText("Töğri savol")).toBeTruthy(), { timeout: 4000 });
 
-    fireEvent.click(screen.getByRole("button", { name: "Tungi rejim" }));
+    // Rejim tanlovi Profilda (sarlavhada endi faqat logo va qidiruv)
+    fireEvent.click(screen.getByRole("button", { name: "Profil" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Tungi" }));
     expect(document.documentElement.dataset.theme).toBe("dark");
     expect(localStorage.getItem("fikrnoma-theme")).toBe("dark");
-    fireEvent.click(screen.getByRole("button", { name: "Kunduzgi rejim" }));
+    fireEvent.click(screen.getByRole("button", { name: "Kunduzgi" }));
     expect(document.documentElement.dataset.theme).toBe("light");
 
     // Profildagi "Avto" tanlovi qo‘lda tanlovni bekor qiladi
-    fireEvent.click(screen.getByRole("button", { name: "Profil" }));
     fireEvent.click(await screen.findByRole("button", { name: "Avto" }));
     expect(document.documentElement.dataset.theme).toBeUndefined();
     localStorage.removeItem("fikrnoma-theme");
