@@ -2,10 +2,10 @@ import { useEffect, useState } from "react";
 import { motion, useReducedMotion } from "framer-motion";
 import { LOGO_PARTS, LOGO_STAR, LOGO_VIEWBOX } from "./Wordmark";
 
-const HOLD_MS = 1900;  // chiqish boshlanguncha (eng kam), logo ochilishini ham o‘z ichiga oladi
-const IN_S = 1.0;      // focus in: loyqadan aniqlikka
-const OUT_S = 0.65;    // focus out: aniqlikdan loyqaga
-const BG_OUT = 0.5;    // fon so‘nib, bosh sahifa ochilishi
+const HOLD_MS = 1100;  // chiqish boshlanguncha (eng kam), logo ochilishini ham o‘z ichiga oladi
+const IN_S = 0.6;      // focus in: loyqadan aniqlikka
+const OUT_S = 0.4;     // focus out: aniqlikdan loyqaga
+const BG_OUT = 0.3;    // fon so‘nib, bosh sahifa ochilishi
 const EASE = [0.22, 1, 0.36, 1] as const;
 
 // Donador (noise) tekstura: tekis rang "yopishib" qolmasligi uchun.
@@ -61,7 +61,7 @@ export function Intro({ ready, onOpen, onEnter }: { ready: boolean; onOpen: () =
         <motion.svg viewBox={LOGO_VIEWBOX} className="block w-[min(46vw,210px)] overflow-visible" fill="currentColor" aria-hidden="true" style={{ color: "#f4f7ff" }}
           initial={reduce ? false : { opacity: 0, filter: "blur(28px)", scale: 1.1 }}
           animate={out ? { opacity: 0, filter: "blur(24px)", scale: 1.05 } : { opacity: 1, filter: "blur(0px)", scale: 1 }}
-          transition={out ? { duration: OUT_S, ease: "easeIn" } : { duration: IN_S, delay: 0.15, ease: EASE }}>
+          transition={out ? { duration: OUT_S, ease: "easeIn" } : { duration: IN_S, delay: 0.05, ease: EASE }}>
           {LOGO_PARTS.map((p) => <path key={p.id} d={p.d} fillRule="evenodd" />)}
           <path d={LOGO_STAR} />
         </motion.svg>
