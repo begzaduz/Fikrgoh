@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
-import { ArrowLeft } from "lucide-react";
-import { CATEGORY_LABEL, catLabel, ReactionBar, ThoughtCard } from "../components/ThoughtCard";
+import { Reader } from "../components/Reader";
+import { CATEGORY_LABEL, catLabel, ThoughtCard } from "../components/ThoughtCard";
 import type { Category } from "../lib/api";
 import { tg } from "../lib/tg";
 import { useApp } from "../store";
@@ -31,21 +31,7 @@ export function Home() {
     return () => { back.offClick(close); back.hide(); };
   }, [open]);
 
-  if (open) {
-    return (
-      <article className="px-5 pb-14 pt-2">
-        <button className="flex min-h-[44px] items-center gap-2 text-sm font-semibold text-muted" onClick={() => setOpenId(null)}>
-          <ArrowLeft size={18} /> {u("Orqaga")}
-        </button>
-        <span className="mt-3 block text-[13px] font-semibold text-clay">{catLabel(open.category, u, c)}</span>
-        <h1 className="font-display mt-2.5 text-[38px] leading-[1.06] text-balance">{c(open.title)}</h1>
-        <div className="mt-7 space-y-5 font-serif text-[21px] font-medium leading-[1.7] text-pretty">
-          {c(open.body).split("\n\n").map((p, i) => <p key={i}>{p}</p>)}
-        </div>
-        <div className="mt-7 border-t border-line pt-2"><ReactionBar t={open} /></div>
-      </article>
-    );
-  }
+  if (open) return <Reader t={open} onClose={() => setOpenId(null)} />;
 
   // Asosiy yo‘nalishlar + lentada uchragan boshqa mavzular.
   const cats = [...Object.keys(CATEGORY_LABEL), ...Array.from(new Set(thoughts.map((t) => t.category))).filter((k) => !(k in CATEGORY_LABEL))];
