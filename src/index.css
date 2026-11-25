@@ -51,3 +51,7 @@ button:focus-visible, textarea:focus-visible, input:focus-visible { outline: 2px
 @keyframes fg-star-spin { 0%, 78% { transform: rotate(0deg); } 94%, 100% { transform: rotate(360deg); } }
 .fg-star-spin { transform-box: fill-box; transform-origin: center; animation: fg-star-spin 7s cubic-bezier(.45, 0, .2, 1) infinite; }
 @media (prefers-reduced-motion: reduce) { .fg-star-spin { animation: none; } }
+
+/* O‘qish rejimi: kartaning qolgan vaqti (chiziq chapga qarab kamayadi). */
+@keyframes fg-drain { from { transform: scaleX(1); } to { transform: scaleX(0); } }
+.fg-drain { transform-origin: left; animation: fg-drain linear forwards; }
