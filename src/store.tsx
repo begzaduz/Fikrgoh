@@ -214,7 +214,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
       return true;
     } catch (e) {
       haptic.err();
-      flash(`Saqlab bo‘lmadi${e instanceof Error ? ": " + e.message : ""}`.slice(0, 140));
+      const m = e instanceof Error ? e.message : "";
+      flash(/category_check/.test(m) ? "Bazada 0006_categories.sql ishga tushirilmagan" : `Saqlab bo‘lmadi${m ? ": " + m : ""}`.slice(0, 140));
       return false;
     }
   };

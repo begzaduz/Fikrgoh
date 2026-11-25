@@ -94,6 +94,7 @@ describe("Fikrnoma", () => {
     await waitFor(() => expect(screen.getByText("Töğri savol")).toBeTruthy(), { timeout: 4000 });
 
     fireEvent.click(screen.getByRole("button", { name: "Yangi fikr" }));
+    fireEvent.change(await screen.findByLabelText("Mavzu"), { target: { value: "Sport" } });
     fireEvent.change(await screen.findByLabelText("Sarlavha"), { target: { value: "To‘g‘ri savol" } });
     fireEvent.change(screen.getByLabelText("Matn"), { target: { value: "Shoshilinch fikr: bu yigirma belgidan ko‘p matn." } });
     fireEvent.click(screen.getByRole("button", { name: /Joyla[sş]/ }));
@@ -102,7 +103,7 @@ describe("Fikrnoma", () => {
     const w = writes.find((x) => x.url.startsWith("POST") && x.url.includes("/rest/v1/thoughts"))!;
     expect(w.body.title).toBe("Töğri savol");
     expect(w.body.body).toBe("Şoşilinç fikr: bu yigirma belgidan köp matn.");
-    expect(w.body.category).toBe("fikr");
+    expect(w.body.category).toBe("sport");
     expect(w.body.author_id).toBe("u1");
   });
 

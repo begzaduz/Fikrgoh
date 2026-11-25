@@ -39,7 +39,7 @@ export function Home() {
         </button>
         <span className="mt-3 block text-[13px] font-semibold text-clay">{catLabel(open.category, u, c)}</span>
         <h1 className="font-display mt-2.5 text-[38px] leading-[1.06] text-balance">{c(open.title)}</h1>
-        <div className="mt-7 space-y-5 font-serif text-[18px] leading-[1.8] text-pretty">
+        <div className="mt-7 space-y-5 font-serif text-[21px] font-medium leading-[1.7] text-pretty">
           {c(open.body).split("\n\n").map((p, i) => <p key={i}>{p}</p>)}
         </div>
         <div className="mt-7 border-t border-line pt-2"><ReactionBar t={open} /></div>

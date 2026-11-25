@@ -1,11 +1,10 @@
 import { useRef, useState } from "react";
 import { motion } from "framer-motion";
 import { Film, X } from "lucide-react";
-import { MAX_VIDEO_BYTES, uploadVideo, type Category, type Short } from "../lib/api";
+import { MAX_VIDEO_BYTES, uploadVideo, type Short } from "../lib/api";
 import { toNew } from "../lib/alphabet";
 import { canPlayVideo, inspectMp4 } from "../lib/video";
 import { useApp, type ComposerState } from "../store";
-import { CATEGORY_LABEL, catLabel } from "./ThoughtCard";
 
 const TONES: Array<[Short["tone"], string]> = [["sand", "Indigo"], ["sage", "Firuza"], ["ink", "Tun"], ["clay", "Tong"]];
 const mb = (n: number) => (n / 1024 / 1024).toFixed(1);
@@ -15,14 +14,10 @@ const mb = (n: number) => (n / 1024 / 1024).toFixed(1);
  * Matn eski alifboda yozilsa, yangisiga (kanonik) avtomatik o‘giriladi. Tahrirlashda matn allaqachon yangi alifboda.
  */
 export function Composer({ state, onClose }: { state: Exclude<ComposerState, null>; onClose: () => void }) {
-  const { publish, u, c } = useApp();
+  const { publish, u } = useApp();
   const edit = state.mode === "edit" ? state : null;
   const [kind, setKind] = useState<"thought" | "short">(edit?.kind ?? "thought");
-  const BASE = Object.keys(CATEGORY_LABEL);
-  const isOther = !!edit && !BASE.includes(edit.category);
-  const [category, setCategory] = useState<Category>(isOther ? "fikr" : edit?.category ?? "fikr");
-  const [other, setOther] = useState(isOther);
-  const [custom, setCustom] = useState(isOther ? edit!.category : "");
+  const [topic, setTopic] = useState(edit?.category ?? "");
   const [tone, setTone] = useState<Short["tone"]>(edit?.kind === "short" ? edit.tone : "sand");
   const [title, setTitle] = useState(edit?.kind === "thought" ? edit.title : "");
   const [body, setBody] = useState(edit ? (edit.kind === "thought" ? edit.body : edit.quote) : "");
@@ -37,10 +32,10 @@ export function Composer({ state, onClose }: { state: Exclude<ComposerState, nul
   const picker = useRef<HTMLInputElement>(null);
 
   const conv = (s: string) => (already ? s : toNew(s));
-  const finalCategory = other ? conv(custom.trim().toLowerCase()) : category;
+  const finalCategory = conv(topic.trim().toLowerCase());
   const hasVideo = !!file || !!video;
   const valid = kind === "thought" ? title.trim().length >= 3 && body.trim().length >= 20 : body.trim().length >= 5 || hasVideo;
-  const validAll = valid && (!other || custom.trim().length >= 2);
+  const validAll = valid && topic.trim().length >= 2;
   const changed = !already && (conv(title) !== title || conv(body) !== body);
 
   const pick = async (f: File | undefined) => {
@@ -107,15 +102,7 @@ export function Composer({ state, onClose }: { state: Exclude<ComposerState, nul
             </div>
           )}
 
-          <div className="flex flex-wrap gap-2" role="group" aria-label={u("Yo‘nalish")}>
-            {BASE.map((k) => (
-              <button key={k} className={chip(!other && category === k)} aria-pressed={!other && category === k} onClick={() => { setOther(false); setCategory(k); }}>{catLabel(k, u, c)}</button>
-            ))}
-            <button className={chip(other)} aria-pressed={other} onClick={() => setOther(true)}>{u("Boshqa")}</button>
-          </div>
-          {other && (
-            <input value={custom} onChange={(e) => setCustom(e.target.value)} maxLength={30} aria-label={u("Mavzu")} placeholder={u("Mavzu nomi (masalan: Sport)")} className={field} />
-          )}
+          <input value={topic} onChange={(e) => setTopic(e.target.value)} maxLength={30} aria-label={u("Mavzu")} placeholder={u("Mavzu (masalan: Sport)")} className={field} />
 
           {kind === "thought" && (
             <input value={title} onChange={(e) => setTitle(e.target.value)} maxLength={140} aria-label={u("Sarlavha")} placeholder={u("Sarlavha")} className={field} />

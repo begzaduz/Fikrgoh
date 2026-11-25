@@ -77,7 +77,7 @@ export function SearchSheet({ onClose, onPick }: { onClose: () => void; onPick: 
                 <span className="font-normal text-muted">· {t.read_minutes} {u("daqiqa o‘qish")}</span>
               </span>
               <span className="mt-1.5 block text-[18px] font-semibold leading-[1.25]">{c(t.title)}</span>
-              <span className="mt-1.5 line-clamp-2 block font-serif text-[14px] leading-relaxed text-muted">{c(t.body).split("\n\n")[0]}</span>
+              <span className="mt-1.5 line-clamp-2 block font-serif text-[16px] font-medium leading-snug text-muted">{c(t.body).split("\n\n")[0]}</span>
             </button>
           ))}
         </div>
