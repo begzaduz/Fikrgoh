@@ -1,22 +1,23 @@
 import { useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { Bookmark, Clapperboard, House, Plus, Search, Sparkles, UserRound, X } from "lucide-react";
+import { Bookmark, Clapperboard, House, Plus, Search, Sparkles, UserRound } from "lucide-react";
 import { Composer } from "./components/Composer";
 import { Intro } from "./components/Intro";
+import { SearchSheet } from "./components/SearchSheet";
 import { Wordmark } from "./components/Wordmark";
 import { Home } from "./pages/Home";
 import { Profile } from "./pages/Profile";
 import { Saved } from "./pages/Saved";
 import { Shorts } from "./pages/Shorts";
+import type { Thought } from "./lib/api";
 import { useApp } from "./store";
 
 type Tab = "home" | "shorts" | "saved" | "profile";
 
 export default function App() {
-  const { status, loginError, notice, u, canWrite, composer, setComposer, thoughts, requestOpen } = useApp();
+  const { status, loginError, notice, u, canWrite, composer, setComposer, thoughts, requestOpen, injectThought } = useApp();
   const [tab, setTab] = useState<Tab>("home");
   const [searching, setSearching] = useState(false);
-  const [q, setQ] = useState("");
   const [entered, setEntered] = useState(false);
   const [opening, setOpening] = useState(false);
 
@@ -27,10 +28,11 @@ export default function App() {
     if (t) { requestOpen(t.id); setTab("home"); }
   };
 
-  const toggleSearch = () => {
-    if (searching) { setSearching(false); setQ(""); return; }
+  const pick = (t: Thought) => {
+    injectThought(t);
+    requestOpen(t.id);
     setTab("home");
-    setSearching(true);
+    setSearching(false);
   };
 
   let content;
@@ -61,19 +63,14 @@ export default function App() {
     const ic = (I: typeof House, id: Tab) => <I size={26} strokeWidth={tab === id ? 2.2 : 1.7} />;
     content = (
       <div className="relative mx-auto flex h-full max-w-[560px] flex-col">
-        <header className="flex min-h-[52px] items-center gap-2 px-5 pb-1 pt-[calc(8px+var(--safe-top))]">
-          {searching ? (
-            <input autoFocus value={q} onChange={(e) => setQ(e.target.value)} placeholder={u("Fikrlardan qidirish")} aria-label={u("Qidirish")}
-              className="h-11 min-w-0 flex-1 bg-transparent text-base text-ink outline-none placeholder:text-muted" />
-          ) : (
-            <Wordmark className="h-[22px] w-auto" />
-          )}
-          <button onClick={toggleSearch} aria-label={searching ? u("Yopish") : u("Qidirish")} className="ml-auto flex h-11 w-11 shrink-0 items-center justify-center text-ink">
-            {searching ? <X size={24} /> : <Search size={24} />}
+        <header className="flex min-h-[56px] items-center justify-between px-5 pb-1 pt-[calc(8px+var(--safe-top))]">
+          <Wordmark spinStar className="h-[36px] w-auto" />
+          <button onClick={() => setSearching(true)} aria-label={u("Qidirish")} className="glass flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-ink">
+            <Search size={21} />
           </button>
         </header>
         <main className="min-h-0 flex-1 overflow-y-auto">
-          {tab === "home" ? <Home q={q} /> : tab === "shorts" ? <Shorts /> : tab === "saved" ? <Saved onOpen={() => setTab("home")} /> : <Profile />}
+          {tab === "home" ? <Home /> : tab === "shorts" ? <Shorts /> : tab === "saved" ? <Saved onOpen={() => setTab("home")} /> : <Profile />}
         </main>
         <nav className="glass mx-3 mb-[calc(8px+env(safe-area-inset-bottom,0px))] mt-1 flex items-center rounded-[30px] px-2">
           {item("home", "Bosh sahifa", ic(House, "home"))}
@@ -85,6 +82,7 @@ export default function App() {
           {item("saved", "Saqlanganlar", ic(Bookmark, "saved"))}
           {item("profile", "Profil", ic(UserRound, "profile"))}
         </nav>
+        <AnimatePresence>{searching && <SearchSheet key="search" onClose={() => setSearching(false)} onPick={pick} />}</AnimatePresence>
         <AnimatePresence>{composer && <Composer key={composer.mode === "edit" ? `${composer.kind}-${composer.id}` : "new"} state={composer} onClose={() => setComposer(null)} />}</AnimatePresence>
         {notice && <div role="status" className="fixed left-1/2 top-20 z-[60] -translate-x-1/2 rounded-full bg-ink px-5 py-2.5 text-[13px] font-semibold text-paper">{u(notice)}</div>}
       </div>

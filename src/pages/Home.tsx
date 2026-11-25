@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { ArrowLeft } from "lucide-react";
 import { CATEGORY_LABEL, ReactionBar, ThoughtCard } from "../components/ThoughtCard";
 import type { Category } from "../lib/api";
@@ -7,19 +7,11 @@ import { useApp } from "../store";
 
 type Filter = "all" | Category;
 
-export function Home({ q }: { q: string }) {
-  const { thoughts, search, hasMore, loadMore, markRead, pendingOpen, clearOpen, u, c } = useApp();
+export function Home() {
+  const { thoughts, hasMore, loadMore, markRead, pendingOpen, clearOpen, u, c } = useApp();
   const [openId, setOpenId] = useState<number | null>(null);
   const [filter, setFilter] = useState<Filter>("all");
-  const first = useRef(true);
   const open = thoughts.find((t) => t.id === openId) ?? null;
-
-  // Qidiruv: 350 ms kutib yuboriladi. Eski va yangi alifbo bir xil natija beradi.
-  useEffect(() => {
-    if (first.current) { first.current = false; return; }
-    const id = window.setTimeout(() => search(q.trim()), 350);
-    return () => window.clearTimeout(id);
-  }, [q, search]);
 
   // Boshqa sahifadan so‘ralgan fikrni ochish (Saqlanganlar, markaziy tugma).
   useEffect(() => {

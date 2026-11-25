@@ -41,6 +41,8 @@ type Store = {
   pendingOpen: number | null;
   requestOpen: (id: number) => void;
   clearOpen: () => void;
+  /** Qidiruvdan tanlangan fikrni lentaga qo‘shadi (bosh sahifa uni ocha olishi uchun). */
+  injectThought: (t: api.Thought) => void;
   /** Fikr ochilganda chaqiriladi: o‘qilganini yozadi va profil ko‘rsatkichlarini yangilaydi. */
   markRead: (id: number) => void;
   notice: string;
@@ -71,6 +73,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [pendingOpen, setPendingOpen] = useState<number | null>(null);
   const requestOpen = useCallback((id: number) => setPendingOpen(id), []);
   const clearOpen = useCallback(() => setPendingOpen(null), []);
+  const injectThought = useCallback((t: api.Thought) => setThoughts((v) => (v.some((x) => x.id === t.id) ? v : [t, ...v])), []);
   const [notice, setNotice] = useState("");
   const [loginError, setLoginError] = useState("");
   const [composer, setComposer] = useState<ComposerState>(null);
@@ -237,9 +240,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
   };
 
   const value = useMemo<Store>(
-    () => ({ status, loginError, profile, alphabet, theme, dark, setTheme, u, c, thoughts, shorts, stats, statsError, reloadStats, history, pendingOpen, requestOpen, clearOpen, markRead, notice, search, hasMore, loadMore, react, reactShort, changeAlphabet, canWrite, publish, remove, composer, setComposer }),
+    () => ({ status, loginError, profile, alphabet, theme, dark, setTheme, u, c, thoughts, shorts, stats, statsError, reloadStats, history, pendingOpen, requestOpen, clearOpen, injectThought, markRead, notice, search, hasMore, loadMore, react, reactShort, changeAlphabet, canWrite, publish, remove, composer, setComposer }),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [status, loginError, profile, alphabet, theme, dark, setTheme, u, c, thoughts, shorts, stats, statsError, reloadStats, history, pendingOpen, requestOpen, clearOpen, markRead, notice, hasMore, canWrite, composer],
+    [status, loginError, profile, alphabet, theme, dark, setTheme, u, c, thoughts, shorts, stats, statsError, reloadStats, history, pendingOpen, requestOpen, clearOpen, injectThought, markRead, notice, hasMore, canWrite, composer],
   );
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 }

@@ -46,3 +46,8 @@ button:focus-visible, textarea:focus-visible, input:focus-visible { outline: 2px
 @keyframes fg-twinkle { 0%, 100% { opacity: .15; transform: scale(.7); } 50% { opacity: .9; transform: scale(1.15); } }
 .fg-tw { animation: fg-twinkle var(--t, 4s) ease-in-out var(--d, 0s) infinite; }
 @media (prefers-reduced-motion: reduce) { .fg-tw { animation: none; opacity: .4; } }
+
+/* Logodagi yulduz: har ~7 soniyada bir marta to‘liq aylanadi, qolgan vaqt tinch turadi */
+@keyframes fg-star-spin { 0%, 78% { transform: rotate(0deg); } 94%, 100% { transform: rotate(360deg); } }
+.fg-star-spin { transform-box: fill-box; transform-origin: center; animation: fg-star-spin 7s cubic-bezier(.45, 0, .2, 1) infinite; }
+@media (prefers-reduced-motion: reduce) { .fg-star-spin { animation: none; } }
