@@ -1,5 +1,5 @@
 import { ChevronRight } from "lucide-react";
-import { CATEGORY_LABEL } from "../components/ThoughtCard";
+import { catLabel } from "../components/ThoughtCard";
 import { useApp } from "../store";
 
 /** Saqlangan fikrlar: bosilsa Bosh sahifada o‘sha fikr ochiladi. */
@@ -15,7 +15,7 @@ export function Saved({ onOpen }: { onOpen: () => void }) {
         {saved.map((t) => (
           <button key={t.id} onClick={() => { requestOpen(t.id); onOpen(); }} className="glass flex items-center gap-3 rounded-[22px] p-4 text-left">
             <span className="min-w-0 flex-1">
-              <span className="block text-[12px] font-semibold text-clay">{u(CATEGORY_LABEL[t.category])}</span>
+              <span className="block text-[12px] font-semibold text-clay">{catLabel(t.category, u, c)}</span>
               <span className="mt-1 block text-[18px] font-semibold leading-snug">{c(t.title)}</span>
             </span>
             <ChevronRight size={20} className="shrink-0 text-muted" />

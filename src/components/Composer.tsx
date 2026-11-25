@@ -5,7 +5,7 @@ import { MAX_VIDEO_BYTES, uploadVideo, type Category, type Short } from "../lib/
 import { toNew } from "../lib/alphabet";
 import { canPlayVideo, inspectMp4 } from "../lib/video";
 import { useApp, type ComposerState } from "../store";
-import { CATEGORY_LABEL } from "./ThoughtCard";
+import { CATEGORY_LABEL, catLabel } from "./ThoughtCard";
 
 const TONES: Array<[Short["tone"], string]> = [["sand", "Indigo"], ["sage", "Firuza"], ["ink", "Tun"], ["clay", "Tong"]];
 const mb = (n: number) => (n / 1024 / 1024).toFixed(1);
@@ -15,10 +15,14 @@ const mb = (n: number) => (n / 1024 / 1024).toFixed(1);
  * Matn eski alifboda yozilsa, yangisiga (kanonik) avtomatik o‘giriladi. Tahrirlashda matn allaqachon yangi alifboda.
  */
 export function Composer({ state, onClose }: { state: Exclude<ComposerState, null>; onClose: () => void }) {
-  const { publish, u } = useApp();
+  const { publish, u, c } = useApp();
   const edit = state.mode === "edit" ? state : null;
   const [kind, setKind] = useState<"thought" | "short">(edit?.kind ?? "thought");
-  const [category, setCategory] = useState<Category>(edit?.category ?? "fikr");
+  const BASE = Object.keys(CATEGORY_LABEL);
+  const isOther = !!edit && !BASE.includes(edit.category);
+  const [category, setCategory] = useState<Category>(isOther ? "fikr" : edit?.category ?? "fikr");
+  const [other, setOther] = useState(isOther);
+  const [custom, setCustom] = useState(isOther ? edit!.category : "");
   const [tone, setTone] = useState<Short["tone"]>(edit?.kind === "short" ? edit.tone : "sand");
   const [title, setTitle] = useState(edit?.kind === "thought" ? edit.title : "");
   const [body, setBody] = useState(edit ? (edit.kind === "thought" ? edit.body : edit.quote) : "");
@@ -33,8 +37,10 @@ export function Composer({ state, onClose }: { state: Exclude<ComposerState, nul
   const picker = useRef<HTMLInputElement>(null);
 
   const conv = (s: string) => (already ? s : toNew(s));
+  const finalCategory = other ? conv(custom.trim().toLowerCase()) : category;
   const hasVideo = !!file || !!video;
   const valid = kind === "thought" ? title.trim().length >= 3 && body.trim().length >= 20 : body.trim().length >= 5 || hasVideo;
+  const validAll = valid && (!other || custom.trim().length >= 2);
   const changed = !already && (conv(title) !== title || conv(body) !== body);
 
   const pick = async (f: File | undefined) => {
@@ -57,7 +63,7 @@ export function Composer({ state, onClose }: { state: Exclude<ComposerState, nul
   };
 
   const submit = async () => {
-    if (!valid || busy) return;
+    if (!validAll || busy) return;
     setBusy(true);
     let url = video;
     if (kind === "short" && file) {
@@ -73,8 +79,8 @@ export function Composer({ state, onClose }: { state: Exclude<ComposerState, nul
     const id = edit?.id;
     const ok = await publish(
       kind === "thought"
-        ? { kind, id, category, title: conv(title.trim()), body: conv(body.trim()) }
-        : { kind, id, category, quote: conv(body.trim()), tone, videoUrl: url, oldVideoUrl: edit?.kind === "short" ? edit.video_url : null },
+        ? { kind, id, category: finalCategory, title: conv(title.trim()), body: conv(body.trim()) }
+        : { kind, id, category: finalCategory, quote: conv(body.trim()), tone, videoUrl: url, oldVideoUrl: edit?.kind === "short" ? edit.video_url : null },
     );
     setBusy(false);
     setProgress(null);
@@ -102,10 +108,14 @@ export function Composer({ state, onClose }: { state: Exclude<ComposerState, nul
           )}
 
           <div className="flex flex-wrap gap-2" role="group" aria-label={u("Yo‘nalish")}>
-            {(Object.keys(CATEGORY_LABEL) as Category[]).map((c) => (
-              <button key={c} className={chip(category === c)} aria-pressed={category === c} onClick={() => setCategory(c)}>{u(CATEGORY_LABEL[c])}</button>
+            {BASE.map((k) => (
+              <button key={k} className={chip(!other && category === k)} aria-pressed={!other && category === k} onClick={() => { setOther(false); setCategory(k); }}>{catLabel(k, u, c)}</button>
             ))}
+            <button className={chip(other)} aria-pressed={other} onClick={() => setOther(true)}>{u("Boshqa")}</button>
           </div>
+          {other && (
+            <input value={custom} onChange={(e) => setCustom(e.target.value)} maxLength={30} aria-label={u("Mavzu")} placeholder={u("Mavzu nomi (masalan: Sport)")} className={field} />
+          )}
 
           {kind === "thought" && (
             <input value={title} onChange={(e) => setTitle(e.target.value)} maxLength={140} aria-label={u("Sarlavha")} placeholder={u("Sarlavha")} className={field} />
@@ -167,7 +177,7 @@ export function Composer({ state, onClose }: { state: Exclude<ComposerState, nul
         </div>
 
         <div className="border-t border-line p-4 pb-[calc(16px+env(safe-area-inset-bottom,0px))]">
-          <button className="min-h-[52px] w-full rounded-full bg-clay text-[16px] font-bold text-onclay disabled:opacity-50" disabled={!valid || busy || checking} onClick={submit}>
+          <button className="min-h-[52px] w-full rounded-full bg-clay text-[16px] font-bold text-onclay disabled:opacity-50" disabled={!validAll || busy || checking} onClick={submit}>
             {busy && progress !== null ? `${u("Yuklanmoqda")} ${progress}%` : edit ? u("Saqlash") : u("Joylash")}
           </button>
         </div>

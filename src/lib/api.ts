@@ -1,7 +1,8 @@
 import { API_URL, supabase } from "./supabase";
 import { tg, tgUserId } from "./tg";
 
-export type Category = "fikr" | "mindset" | "madaniyat";
+/** Asosiy yo‘nalishlar: fikr, mindset, madaniyat. Admin boshqa mavzuni ham o‘zi yozishi mumkin. */
+export type Category = string;
 export type Thought = { id: number; category: Category; title: string; body: string; read_minutes: number; created_at: string; likes: number; liked: boolean; saved: boolean };
 export type Short = { id: number; category: Category; quote: string; tone: "sand" | "sage" | "ink" | "clay"; video_url: string | null; likes: number; liked: boolean };
 export type Stats = { reads: number; categories: number; streak: number; today: boolean; week: boolean[]; todayIndex: number; level: 0 | 1 | 2; levelTo: number | null };

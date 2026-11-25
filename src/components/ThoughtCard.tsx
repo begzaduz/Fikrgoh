@@ -3,7 +3,10 @@ import type { Thought } from "../lib/api";
 import { useApp } from "../store";
 import { AdminMenu } from "./AdminMenu";
 
-export const CATEGORY_LABEL = { fikr: "Fikr", mindset: "Mindset", madaniyat: "Madaniyat" } as const;
+export const CATEGORY_LABEL: Record<string, string> = { fikr: "Fikr", mindset: "Mindset", madaniyat: "Madaniyat" };
+/** Asosiy yo‘nalish: interfeys matni (u). Boshqa mavzu: bazadagi kanonik matn (c), bosh harf bilan. */
+export const catLabel = (k: string, u: (s: string) => string, c: (s: string) => string) =>
+  k in CATEGORY_LABEL ? u(CATEGORY_LABEL[k]!) : c(k.charAt(0).toUpperCase() + k.slice(1));
 
 export function ReactionBar({ t }: { t: Thought }) {
   const { react, u } = useApp();
@@ -33,7 +36,7 @@ export function ThoughtCard({ t, onOpen }: { t: Thought; onOpen: () => void }) {
       )}
       <button className="block w-full text-left" onClick={onOpen}>
         <span className="flex items-center gap-2.5 text-[12px] font-semibold text-clay">
-          <span>{u(CATEGORY_LABEL[t.category])}</span>
+          <span>{catLabel(t.category, u, c)}</span>
           <span className="font-normal text-muted">· {t.read_minutes} {u("daqiqa o‘qish")}</span>
         </span>
         <h3 className="mt-2.5 pr-8 text-[22px] font-semibold leading-[1.2] text-balance">{c(t.title)}</h3>

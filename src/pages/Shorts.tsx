@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Heart, Send, Volume2, VolumeX } from "lucide-react";
 import { AdminMenu } from "../components/AdminMenu";
-import { CATEGORY_LABEL } from "../components/ThoughtCard";
+import { catLabel } from "../components/ThoughtCard";
 import { proxied, type Short } from "../lib/api";
 import { share } from "../lib/tg";
 import { useApp } from "../store";
@@ -40,7 +40,7 @@ function ShortCard({ s }: { s: Short }) {
 
   const hasVideo = !!s.video_url && !failed;
   const btn = "flex h-12 w-12 items-center justify-center rounded-full bg-white/15";
-  const label = (cat: string) => u(CATEGORY_LABEL[cat as keyof typeof CATEGORY_LABEL]);
+  const label = (cat: string) => catLabel(cat, u, c);
   return (
     <section ref={box} className={`relative flex h-full snap-start flex-col px-6 pb-8 pt-6 ${hasVideo ? "bg-black text-white" : TONE[s.tone]}`}>
       {hasVideo && (

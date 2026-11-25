@@ -4,7 +4,7 @@ import { ArrowLeft, Search, X } from "lucide-react";
 import { getFeed, type Thought } from "../lib/api";
 import { tg } from "../lib/tg";
 import { useApp } from "../store";
-import { CATEGORY_LABEL } from "./ThoughtCard";
+import { catLabel } from "./ThoughtCard";
 
 type State = "idle" | "loading" | "done" | "error";
 
@@ -73,7 +73,7 @@ export function SearchSheet({ onClose, onPick }: { onClose: () => void; onPick: 
           {state === "done" && rows.map((t) => (
             <button key={t.id} onClick={() => onPick(t)} className="glass mt-3 block w-full rounded-[22px] p-4 text-left">
               <span className="flex items-center gap-2 text-[12px] font-semibold text-clay">
-                {u(CATEGORY_LABEL[t.category])}
+                {catLabel(t.category, u, c)}
                 <span className="font-normal text-muted">· {t.read_minutes} {u("daqiqa o‘qish")}</span>
               </span>
               <span className="mt-1.5 block text-[18px] font-semibold leading-[1.25]">{c(t.title)}</span>
