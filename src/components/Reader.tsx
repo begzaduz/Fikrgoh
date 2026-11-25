@@ -1,18 +1,16 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { motion } from "framer-motion";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, Volume2, VolumeX } from "lucide-react";
+import { createAmbient } from "../lib/ambient";
 import type { Thought } from "../lib/api";
 import { useApp } from "../store";
 import { catLabel, ReactionBar } from "./ThoughtCard";
 
-/** Asosiy o‘qish tezligi (so‘z/daqiqa, 1×). Foydalanuvchi tepadagi tugma bilan 0.5×–1.25× oralig‘ida o‘zgartiradi. */
-const WPM = 160;
+/** O‘qish tezligi (so‘z/daqiqa): kartaning vaqti shundan hisoblanadi. Tezroq o‘tishi uchun oshiring. */
+const WPM = 120;
 const WORD_MS = 60000 / WPM;
-const SPEEDS = [0.5, 0.75, 1, 1.25] as const;
-const SPEED_KEY = "fg-speed";
-const loadSpeed = (): number => {
-  try { const v = Number(localStorage.getItem(SPEED_KEY)); return (SPEEDS as readonly number[]).includes(v) ? v : 0.75; } catch { return 0.75; }
-};
+const SOUND_KEY = "fg-sound";
+const loadSound = (): boolean => { try { return localStorage.getItem(SOUND_KEY) !== "off"; } catch { return true; } };
 const clock = (sec: number) => `${Math.floor(sec / 60)}:${String(sec % 60).padStart(2, "0")}`;
 const TITLE_MS = 3500;
 const CHUNK = 420; // bitta kartadagi belgilar chegarasi (jumla bo‘yicha bo‘linadi)
@@ -33,7 +31,7 @@ function chunk(p: string, max = CHUNK): string[] {
 
 /**
  * Chuqur o‘qish: scrollsiz, kartalar o‘zi almashadi. Tepada umumiy qolgan vaqt kamayib boradi,
- * o‘qilayotgan so‘z oqaradi va o‘qilgach so‘nadi. Bosib turing — pauza; tezlik tugmasi tepada.
+ * fonda yumshoq shovqin (tepadagi tugma bilan o‘chiriladi). Bosib turing — pauza.
  */
 export function Reader({ t, onClose }: { t: Thought; onClose: () => void }) {
   const { u, c } = useApp();
@@ -42,9 +40,8 @@ export function Reader({ t, onClose }: { t: Thought; onClose: () => void }) {
   const dur = useMemo(() => [TITLE_MS, ...words.map((w) => Math.max(2500, w.length * WORD_MS + 700))], [words]);
 
   const [idx, setIdx] = useState(0);
-  const [wi, setWi] = useState(-1);
-  const [speed, setSpeed] = useState(loadSpeed);
-  const [secs, setSecs] = useState(() => Math.ceil(dur.reduce((a, b) => a + b, 0) / loadSpeed() / 1000));
+  const [sound, setSound] = useState(loadSound);
+  const [secs, setSecs] = useState(() => Math.ceil(dur.reduce((a, b) => a + b, 0) / 1000));
   const bar = useRef<HTMLDivElement>(null);
   const after = useMemo(() => dur.map((_, i) => dur.slice(i + 1).reduce((a, b) => a + b, 0)), [dur]); // keyingi kartalar vaqti
   const totalMs = after[0]! + dur[0]!;
@@ -55,31 +52,34 @@ export function Reader({ t, onClose }: { t: Thought; onClose: () => void }) {
   const go = useCallback((i: number) => {
     if (i < 0 || i >= total) return;
     elapsed.current = 0;
-    setWi(-1);
     setFin(false);
     setIdx(i);
   }, [total]);
 
-  const cycleSpeed = () => {
-    const next = SPEEDS[(SPEEDS.indexOf(speed as (typeof SPEEDS)[number]) + 1) % SPEEDS.length]!;
-    setSpeed(next);
-    try { localStorage.setItem(SPEED_KEY, String(next)); } catch { /* saqlanmasa ham ishlayveradi */ }
+  const toggleSound = () => {
+    const next = !sound;
+    setSound(next);
+    try { localStorage.setItem(SOUND_KEY, next ? "on" : "off"); } catch { /* saqlanmasa ham ishlayveradi */ }
   };
+  useEffect(() => {
+    if (!sound) return;
+    const a = createAmbient();
+    a.start();
+    return a.stop;
+  }, [sound]);
 
   // Soat: so‘z indeksi va qolgan soniya yangilanadi; vaqt tugasa keyingi kartaga o‘tadi (oxirgisida to‘xtaydi).
   useEffect(() => {
     if (paused || fin) return;
     const d = dur[idx]!;
-    const n = idx === 0 ? 0 : words[idx - 1]!.length;
     let last = performance.now();
     let raf = 0;
     const tick = (now: number) => {
-      elapsed.current += (now - last) * speed; // vaqt "asosiy" millisekundda; tezlik o‘zgarsa ham ravon davom etadi
+      elapsed.current += now - last;
       last = now;
       const e = elapsed.current;
-      if (n) setWi(Math.min(n - 1, Math.floor(e / WORD_MS)));
       const left = Math.max(0, d - e) + after[idx]!; // butun matn bo‘yicha qolgan vaqt
-      setSecs(Math.ceil(left / speed / 1000));
+      setSecs(Math.ceil(left / 1000));
       if (bar.current) bar.current.style.transform = `scaleX(${left / totalMs})`;
       if (e >= d) {
         if (idx < total - 1) go(idx + 1);
@@ -90,7 +90,7 @@ export function Reader({ t, onClose }: { t: Thought; onClose: () => void }) {
     };
     raf = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(raf);
-  }, [idx, paused, fin, dur, words, total, go, speed, after, totalMs]);
+  }, [idx, paused, fin, dur, total, go, after, totalMs]);
 
   // Faqat bosib turish — pauza. Bosish va surish keyingi kartaga o‘tkazmaydi.
   const holdTimer = useRef(0);
@@ -116,8 +116,8 @@ export function Reader({ t, onClose }: { t: Thought; onClose: () => void }) {
           <div className="flex items-center justify-between">
             <button className="glass flex h-11 w-11 items-center justify-center rounded-full" onClick={onClose} aria-label={u("Orqaga")}><ArrowLeft size={20} /></button>
             <span className="text-[17px] font-semibold tabular-nums text-muted" aria-live="off">{fin ? "" : clock(secs)}</span>
-            <button className="glass flex h-11 min-w-[56px] items-center justify-center rounded-full px-3 text-[14px] font-semibold tabular-nums" onClick={cycleSpeed} aria-label={`${u("Tezlik")}: ${speed}×`}>
-              {speed}×
+            <button className="glass flex h-11 w-11 items-center justify-center rounded-full" onClick={toggleSound} aria-pressed={sound} aria-label={sound ? u("Ovozni o‘chirish") : u("Ovozni yoqish")}>
+              {sound ? <Volume2 size={20} /> : <VolumeX size={20} />}
             </button>
           </div>
           <div className="mt-4 flex gap-1.5" aria-hidden="true">
@@ -133,14 +133,7 @@ export function Reader({ t, onClose }: { t: Thought; onClose: () => void }) {
           <motion.section key={idx} className="flex h-full flex-col justify-center px-7 pb-16" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.35 }}>
             {w ? (
               <>
-                <p className="font-serif text-[22px] font-normal leading-[1.65]">
-                  {w.map((x, i) => {
-                    const on = i === wi;
-                    // Joriy so‘z tez oqaradi, o‘qilgach sekin so‘nadi; o‘qilmaganlari xira.
-                    const o = fin ? 1 : on ? 1 : i < wi ? 0.45 : 0.25;
-                    return <span key={i} style={{ opacity: o, transition: `opacity ${on ? 120 : 900}ms ease-out` }}>{x}{" "}</span>;
-                  })}
-                </p>
+                <p className="font-serif text-[22px] font-normal leading-[1.65] opacity-90">{w.join(" ")}</p>
                 {idx === total - 1 && fin && <div className="mt-8"><ReactionBar t={t} /></div>}
               </>
             ) : (
