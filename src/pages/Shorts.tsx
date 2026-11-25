@@ -25,6 +25,8 @@ function ShortCard({ s }: { s: Short }) {
   const [muted, setMuted] = useState(true);
   const [failed, setFailed] = useState(false);
   const [direct, setDirect] = useState(false);
+  const [errCode, setErrCode] = useState<number | null>(null);
+  const visible = useRef(false);
   // Avval proksi (/sb) orqali, bo‘lmasa to‘g‘ridan-to‘g‘ri havola bilan ochiladi.
   const src = s.video_url ? (direct ? s.video_url : proxied(s.video_url)) : undefined;
 
@@ -33,10 +35,18 @@ function ShortCard({ s }: { s: Short }) {
     const el = box.current;
     const v = vid.current;
     if (!el || !v) return;
-    const io = new IntersectionObserver(([e]) => { if (e && e.intersectionRatio > 0.6) void v.play().catch(() => {}); else v.pause(); }, { threshold: [0, 0.6, 1] });
+    const io = new IntersectionObserver(([e]) => { visible.current = !!e && e.intersectionRatio > 0.6; if (visible.current) void v.play().catch(() => {}); else v.pause(); }, { threshold: [0, 0.6, 1] });
     io.observe(el);
     return () => io.disconnect();
   }, [s.video_url]);
+
+  // Manba almashganda (proksi → to‘g‘ridan-to‘g‘ri) ko‘rinib turgan video qayta ijro etiladi; muted holati elementga aniq beriladi.
+  useEffect(() => {
+    const v = vid.current;
+    if (!v) return;
+    v.muted = muted;
+    if (visible.current) void v.play().catch(() => {});
+  }, [src, muted]);
 
   const hasVideo = !!s.video_url && !failed;
   const btn = "flex h-12 w-12 items-center justify-center rounded-full bg-white/15";
@@ -45,12 +55,12 @@ function ShortCard({ s }: { s: Short }) {
     <section ref={box} className={`relative flex h-full snap-start flex-col px-6 pb-8 pt-6 ${hasVideo ? "bg-black text-white" : TONE[s.tone]}`}>
       {hasVideo && (
         <>
-          <video ref={vid} src={src} muted={muted} loop playsInline preload="metadata" onError={() => (direct || src === s.video_url ? setFailed(true) : setDirect(true))} className="absolute inset-0 h-full w-full object-cover" />
+          <video ref={vid} src={src} muted={muted} loop playsInline preload="metadata" onError={(e) => { if (direct || src === s.video_url) { setErrCode(e.currentTarget.error?.code ?? null); setFailed(true); } else setDirect(true); }} className="absolute inset-0 h-full w-full object-cover" />
           <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/10 to-black/30" aria-hidden="true" />
         </>
       )}
       <span className="relative text-[12px] font-semibold uppercase tracking-[0.16em] opacity-85">{label(s.category)}</span>
-      {s.video_url && failed && <p className="relative mt-2 text-[12px] opacity-80">{u("Video ochilmadi.")}</p>}
+      {s.video_url && failed && <p className="relative mt-2 text-[12px] opacity-80">{u("Video ochilmadi.")}{errCode === 4 ? ` ${u("Format qo‘llab-quvvatlanmaydi (MP4, H.264 kerak).")}` : ""}</p>}
 
       {/* Matnli kartada matn o‘rtada, videoda pastda (o‘ng tomonda tugmalar uchun joy qoldiriladi). */}
       <div className={`relative flex flex-1 pr-16 ${hasVideo ? "items-end" : "items-center"}`}>
