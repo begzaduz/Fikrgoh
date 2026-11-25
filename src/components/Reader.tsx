@@ -58,7 +58,7 @@ export function Reader({ t, onClose }: { t: Thought; onClose: () => void }) {
           </section>
           {parts.map((p, i) => (
             <section key={i} className="flex h-full snap-start snap-always flex-col justify-center px-7 pb-16">
-              <p className="font-serif text-[26px] font-medium leading-[1.5] text-pretty">{p}</p>
+              <p className="font-serif text-[22px] font-normal leading-[1.65] text-pretty">{p}</p>
               {i === parts.length - 1 && <div className="mt-8"><ReactionBar t={t} /></div>}
             </section>
           ))}

@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { Search } from "lucide-react";
 import { Reader } from "../components/Reader";
 import { CATEGORY_LABEL, catLabel, ThoughtCard } from "../components/ThoughtCard";
 import type { Category } from "../lib/api";
@@ -7,7 +8,7 @@ import { useApp } from "../store";
 
 type Filter = "all" | Category;
 
-export function Home() {
+export function Home({ onSearch }: { onSearch: () => void }) {
   const { thoughts, hasMore, loadMore, markRead, pendingOpen, clearOpen, u, c } = useApp();
   const [openId, setOpenId] = useState<number | null>(null);
   const [filter, setFilter] = useState<Filter>("all");
@@ -47,10 +48,11 @@ export function Home() {
         ))}
       </div>
 
-      <div className="mt-7 flex items-baseline justify-between">
-        <h2 className="text-[18px] font-semibold">{u("Yangi fikrlar")}</h2>
-        <span className="text-[13px] text-muted">{list.length}</span>
-      </div>
+      <button className="glass mt-4 flex min-h-[52px] w-full items-center gap-3 rounded-full px-5 text-left text-[15px] text-muted" onClick={onSearch} aria-label={u("Qidirish")}>
+        <Search size={19} aria-hidden="true" /> {u("Fikrlardan qidirish")}
+      </button>
+
+      <h2 className="mt-7 text-[18px] font-semibold">{u("Yangi fikrlar")}</h2>
       {list.length === 0 && <p className="mt-4 text-sm text-muted">{u("Hozircha fikr topilmadi.")}</p>}
       {list.map((t) => <ThoughtCard key={t.id} t={t} onOpen={() => setOpenId(t.id)} />)}
       {hasMore && (

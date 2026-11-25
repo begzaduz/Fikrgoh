@@ -22,11 +22,13 @@ function ShortCard({ s }: { s: Short }) {
   const { u, c, canWrite, setComposer, remove, reactShort } = useApp();
   const box = useRef<HTMLElement>(null);
   const vid = useRef<HTMLVideoElement>(null);
-  const [muted, setMuted] = useState(true);
+  const [muted, setMuted] = useState(false);
   const [failed, setFailed] = useState(false);
   const [direct, setDirect] = useState(false);
   const [errCode, setErrCode] = useState<number | null>(null);
   const visible = useRef(false);
+  // Ovozli ijro brauzer tomonidan taqiqlansa, ovozsiz davom etadi (ovoz tugmasi bilan yoqiladi).
+  const tryPlay = (v: HTMLVideoElement) => { v.play().catch(() => { if (!v.muted) { v.muted = true; setMuted(true); void v.play().catch(() => {}); } }); };
   // Avval proksi (/sb) orqali, bo‘lmasa to‘g‘ridan-to‘g‘ri havola bilan ochiladi.
   const src = s.video_url ? (direct ? s.video_url : proxied(s.video_url)) : undefined;
 
@@ -35,7 +37,7 @@ function ShortCard({ s }: { s: Short }) {
     const el = box.current;
     const v = vid.current;
     if (!el || !v) return;
-    const io = new IntersectionObserver(([e]) => { visible.current = !!e && e.intersectionRatio > 0.6; if (visible.current) void v.play().catch(() => {}); else v.pause(); }, { threshold: [0, 0.6, 1] });
+    const io = new IntersectionObserver(([e]) => { visible.current = !!e && e.intersectionRatio > 0.6; if (visible.current) tryPlay(v); else v.pause(); }, { threshold: [0, 0.6, 1] });
     io.observe(el);
     return () => io.disconnect();
   }, [s.video_url]);
@@ -45,7 +47,7 @@ function ShortCard({ s }: { s: Short }) {
     const v = vid.current;
     if (!v) return;
     v.muted = muted;
-    if (visible.current) void v.play().catch(() => {});
+    if (visible.current) tryPlay(v);
   }, [src, muted]);
 
   const hasVideo = !!s.video_url && !failed;

@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { Bookmark, Clapperboard, House, Plus, Search, Sparkles, UserRound } from "lucide-react";
+import { Bookmark, Clapperboard, House, Plus, Sparkles, UserRound } from "lucide-react";
 import { Composer } from "./components/Composer";
 import { Intro } from "./components/Intro";
 import { SearchSheet } from "./components/SearchSheet";
@@ -63,14 +63,11 @@ export default function App() {
     const ic = (I: typeof House, id: Tab) => <I size={26} strokeWidth={tab === id ? 2.2 : 1.7} />;
     content = (
       <div className="relative mx-auto flex h-full max-w-[560px] flex-col">
-        <header className="flex min-h-[56px] items-center justify-between px-5 pb-1 pt-[calc(8px+var(--safe-top))]">
+        <header className="flex min-h-[56px] items-center justify-center px-5 pb-1 pt-[calc(8px+var(--safe-top))]">
           <Wordmark spinStar className="h-[36px] w-auto" />
-          <button onClick={() => setSearching(true)} aria-label={u("Qidirish")} className="glass flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-ink">
-            <Search size={21} />
-          </button>
         </header>
         <main className="min-h-0 flex-1 overflow-y-auto">
-          {tab === "home" ? <Home /> : tab === "shorts" ? <Shorts /> : tab === "saved" ? <Saved onOpen={() => setTab("home")} /> : <Profile />}
+          {tab === "home" ? <Home onSearch={() => setSearching(true)} /> : tab === "shorts" ? <Shorts /> : tab === "saved" ? <Saved onOpen={() => setTab("home")} /> : <Profile />}
         </main>
         <nav className="glass mx-3 mb-[calc(8px+env(safe-area-inset-bottom,0px))] mt-1 flex items-center rounded-[30px] px-2">
           {item("home", "Bosh sahifa", ic(House, "home"))}

@@ -42,7 +42,6 @@ export function ThoughtCard({ t, onOpen }: { t: Thought; onOpen: () => void }) {
         <h3 className="mt-2.5 pr-8 text-[22px] font-semibold leading-[1.2] text-balance">{c(t.title)}</h3>
         <p className="mt-2.5 line-clamp-2 font-serif text-[17px] font-medium leading-snug text-muted">{c(t.body).split("\n\n")[0]}</p>
       </button>
-      <ReactionBar t={t} />
     </article>
   );
 }

@@ -46,7 +46,6 @@ type Store = {
   /** Fikr ochilganda chaqiriladi: o‘qilganini yozadi va profil ko‘rsatkichlarini yangilaydi. */
   markRead: (id: number) => void;
   notice: string;
-  search: (q: string) => void;
   hasMore: boolean;
   loadMore: () => void;
   react: (t: api.Thought, kind: "like" | "save") => void;
@@ -81,7 +80,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const thoughtsRef = useRef<api.Thought[]>([]);
   thoughtsRef.current = thoughts;
   const [hasMore, setHasMore] = useState(false);
-  const query = useRef("");      // hozirgi qidiruv matni
   const feedSeq = useRef(0);     // eskirgan javoblarni tashlab yuborish uchun
   const loadingMore = useRef(false);
   const [theme, setThemeState] = useState<Theme>(loadTheme);
@@ -135,19 +133,11 @@ export function AppProvider({ children }: { children: ReactNode }) {
       .catch((e) => setStatsError(e instanceof Error ? e.message : "noma’lum xato"));
   }, []);
 
-  const search = useCallback((q: string) => {
-    query.current = q;
-    const seq = ++feedSeq.current;
-    api.getFeed(q)
-      .then((rows) => { if (seq === feedSeq.current) { setThoughts(rows); setHasMore(rows.length >= api.PAGE); } })
-      .catch(() => { if (seq === feedSeq.current) flash("Qidirib bo‘lmadi"); });
-  }, [flash]);
-
   const loadMore = useCallback(() => {
     if (loadingMore.current) return;
     loadingMore.current = true;
     const seq = feedSeq.current;
-    api.getFeed(query.current, thoughtsRef.current.length)
+    api.getFeed("", thoughtsRef.current.length)
       .then((rows) => {
         if (seq !== feedSeq.current) return;
         setThoughts((v) => [...v, ...rows.filter((r) => !v.some((x) => x.id === r.id))]);
@@ -198,7 +188,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         const body = { category: p.category, title: p.title, body: p.body };
         if (p.id) await api.updateThought(p.id, body);
         else await api.createThought(profile.id, body);
-        const rows = await api.getFeed(query.current);
+        const rows = await api.getFeed();
         feedSeq.current++;
         setThoughts(rows);
         setHasMore(rows.length >= api.PAGE);
@@ -241,7 +231,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   };
 
   const value = useMemo<Store>(
-    () => ({ status, loginError, profile, alphabet, theme, dark, setTheme, u, c, thoughts, shorts, stats, statsError, reloadStats, history, pendingOpen, requestOpen, clearOpen, injectThought, markRead, notice, search, hasMore, loadMore, react, reactShort, changeAlphabet, canWrite, publish, remove, composer, setComposer }),
+    () => ({ status, loginError, profile, alphabet, theme, dark, setTheme, u, c, thoughts, shorts, stats, statsError, reloadStats, history, pendingOpen, requestOpen, clearOpen, injectThought, markRead, notice, hasMore, loadMore, react, reactShort, changeAlphabet, canWrite, publish, remove, composer, setComposer }),
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [status, loginError, profile, alphabet, theme, dark, setTheme, u, c, thoughts, shorts, stats, statsError, reloadStats, history, pendingOpen, requestOpen, clearOpen, injectThought, markRead, notice, hasMore, canWrite, composer],
   );

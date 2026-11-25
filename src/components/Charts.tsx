@@ -12,19 +12,6 @@ export function Bars({ values, className = "" }: { values: number[]; className?:
   );
 }
 
-export function Spark({ values, className = "" }: { values: number[]; className?: string }) {
-  const max = Math.max(1, ...values);
-  const pts = values.map((v, i) => [(i / Math.max(1, values.length - 1)) * 96 + 2, 34 - (v / max) * 28] as const);
-  const d = pts.map(([x, y], i) => (i === 0 ? `M${x},${y}` : `C${pts[i - 1]![0] + 8},${pts[i - 1]![1]} ${x - 8},${y} ${x},${y}`)).join(" ");
-  const last = pts[pts.length - 1]!;
-  return (
-    <svg viewBox="0 0 100 40" preserveAspectRatio="none" className={className} aria-hidden="true">
-      <path d={d} fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" vectorEffect="non-scaling-stroke" />
-      <circle cx={last[0]} cy={last[1]} r="2.6" fill="currentColor" />
-    </svg>
-  );
-}
-
 /** Katta kartadagi bezak to‘lqin. */
 export function Wave({ className = "" }: { className?: string }) {
   return (
