@@ -31,7 +31,7 @@ export function ThoughtCard({ t, onOpen }: { t: Thought; onOpen: () => void }) {
     <article className="glass relative mt-3 rounded-[26px] p-5">
       {canWrite && (
         <div className="absolute right-2 top-2">
-          <AdminMenu onEdit={() => setComposer({ mode: "edit", kind: "thought", id: t.id, category: t.category, title: t.title, body: t.body })} onDelete={() => remove("thought", t.id)} />
+          <AdminMenu onEdit={() => setComposer({ mode: "edit", kind: "thought", id: t.id, category: t.category, title: t.title, body: t.body, image_url: t.image_url ?? null })} onDelete={() => remove("thought", t.id)} />
         </div>
       )}
       <button className="block w-full text-left" onClick={onOpen}>

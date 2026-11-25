@@ -3,7 +3,7 @@ import { tg, tgUserId } from "./tg";
 
 /** Asosiy yo‘nalishlar: fikr, mindset, madaniyat. Admin boshqa mavzuni ham o‘zi yozishi mumkin. */
 export type Category = string;
-export type Thought = { id: number; category: Category; title: string; body: string; read_minutes: number; created_at: string; likes: number; liked: boolean; saved: boolean };
+export type Thought = { id: number; category: Category; title: string; body: string; read_minutes: number; created_at: string; likes: number; liked: boolean; saved: boolean; image_url?: string | null };
 export type Short = { id: number; category: Category; quote: string; tone: "sand" | "sage" | "ink" | "clay"; video_url: string | null; likes: number; liked: boolean };
 export type Stats = { reads: number; categories: number; streak: number; today: boolean; week: boolean[]; todayIndex: number; level: 0 | 1 | 2; levelTo: number | null };
 export type Profile = { id: string; first_name: string; username: string | null; photo_url?: string | null; role: "reader" | "admin"; alphabet: "new" | "old" };
@@ -120,11 +120,11 @@ const fail = (e: { message: string } | null) => {
   if (e) throw new Error(e.message);
 };
 
-export async function createThought(authorId: string, p: { category: Category; title: string; body: string }) {
-  fail((await supabase.from("thoughts").insert({ author_id: authorId, category: p.category, title: p.title, body: p.body, read_minutes: minutes(p.body) })).error);
+export async function createThought(authorId: string, p: { category: Category; title: string; body: string; image_url?: string | null }) {
+  fail((await supabase.from("thoughts").insert({ author_id: authorId, category: p.category, title: p.title, body: p.body, read_minutes: minutes(p.body), ...("image_url" in p ? { image_url: p.image_url } : {}) })).error);
 }
-export async function updateThought(id: number, p: { category: Category; title: string; body: string }) {
-  const r = await supabase.from("thoughts").update({ category: p.category, title: p.title, body: p.body, read_minutes: minutes(p.body) }).eq("id", id).select("id");
+export async function updateThought(id: number, p: { category: Category; title: string; body: string; image_url?: string | null }) {
+  const r = await supabase.from("thoughts").update({ category: p.category, title: p.title, body: p.body, read_minutes: minutes(p.body), ...("image_url" in p ? { image_url: p.image_url } : {}) }).eq("id", id).select("id");
   fail(r.error);
   if (!r.data?.length) throw new Error("topilmadi yoki ruxsat yo‘q");
 }
@@ -157,9 +157,12 @@ const DIRECT = import.meta.env.VITE_SUPABASE_URL as string;
 /** Bazada saqlangan to‘g‘ridan-to‘g‘ri video havolasini o‘z proksimiz (/sb) orqali ochiladigan havolaga o‘giradi (supabase.co yopiq tarmoqlar uchun zaxira). */
 export const proxied = (url: string) => (DIRECT && url.startsWith(DIRECT) ? API_URL + url.slice(DIRECT.length) : url);
 
-/** Videoni Storage'ga yuklaydi (foiz bilan). Avval to‘g‘ridan-to‘g‘ri, tarmoq xatosi bo‘lsa Vercel proksi orqali. Ochiq havolani qaytaradi. */
+const EXT: Record<string, string> = { "video/webm": "webm", "video/quicktime": "mov", "image/jpeg": "jpg", "image/png": "png", "image/webp": "webp" };
+export const MAX_IMAGE_BYTES = 5 * 1024 * 1024;
+
+/** Videoni (yoki rasmni) Storage'ga yuklaydi (foiz bilan). Avval to‘g‘ridan-to‘g‘ri, tarmoq xatosi bo‘lsa Vercel proksi orqali. Ochiq havolani qaytaradi. */
 export async function uploadVideo(file: File, onProgress: (pct: number) => void): Promise<string> {
-  const ext = file.type === "video/webm" ? "webm" : file.type === "video/quicktime" ? "mov" : "mp4";
+  const ext = EXT[file.type] ?? "mp4";
   const path = `${crypto.randomUUID()}.${ext}`;
   const token = (await supabase.auth.getSession()).data.session?.access_token;
   if (!token) throw new Error("kirish kerak");
@@ -192,3 +195,6 @@ export async function removeVideo(url: string | null) {
   const path = url?.split(`/${BUCKET}/`)[1];
   if (path) await supabase.storage.from(BUCKET).remove([path]).catch(() => {});
 }
+
+/** Fikr rasmi uchun: yuklash bitta (video bilan bir xil bucket). */
+export const uploadImage = uploadVideo;

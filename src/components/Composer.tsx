@@ -1,7 +1,7 @@
 import { useRef, useState } from "react";
 import { motion } from "framer-motion";
-import { Film, X } from "lucide-react";
-import { MAX_VIDEO_BYTES, uploadVideo, type Short } from "../lib/api";
+import { Film, ImagePlus, X } from "lucide-react";
+import { MAX_IMAGE_BYTES, MAX_VIDEO_BYTES, uploadImage, uploadVideo, type Short } from "../lib/api";
 import { toNew } from "../lib/alphabet";
 import { canPlayVideo, inspectMp4 } from "../lib/video";
 import { useApp, type ComposerState } from "../store";
@@ -30,6 +30,18 @@ export function Composer({ state, onClose }: { state: Exclude<ComposerState, nul
   const [busy, setBusy] = useState(false);
   const [checking, setChecking] = useState(false);
   const picker = useRef<HTMLInputElement>(null);
+  const [image, setImage] = useState<string | null>(edit?.kind === "thought" ? edit.image_url ?? null : null);
+  const [imgFile, setImgFile] = useState<File | null>(null);
+  const [imgError, setImgError] = useState("");
+  const imgPicker = useRef<HTMLInputElement>(null);
+  const preview = imgFile ? URL.createObjectURL(imgFile) : image;
+  const pickImage = (f: File | undefined) => {
+    setImgError("");
+    if (!f) return;
+    if (!/^image\/(jpeg|png|webp)$/.test(f.type)) return setImgError("Faqat JPG, PNG yoki WebP rasm tanlang.");
+    if (f.size > MAX_IMAGE_BYTES) return setImgError(`Rasm juda katta (${mb(f.size)} MB). Chegara: 5 MB.`);
+    setImgFile(f);
+  };
 
   const conv = (s: string) => (already ? s : toNew(s));
   const finalCategory = conv(topic.trim().toLowerCase());
@@ -71,10 +83,21 @@ export function Composer({ state, onClose }: { state: Exclude<ComposerState, nul
         return setFileError(`Video yuklanmadi: ${e instanceof Error ? e.message : "noma’lum xato"}`);
       }
     }
+    let imgUrl = image;
+    if (kind === "thought" && imgFile) {
+      try {
+        setProgress(0);
+        imgUrl = await uploadImage(imgFile, setProgress);
+      } catch (e) {
+        setBusy(false);
+        setProgress(null);
+        return setImgError(`Rasm yuklanmadi: ${e instanceof Error ? e.message : "noma’lum xato"}`);
+      }
+    }
     const id = edit?.id;
     const ok = await publish(
       kind === "thought"
-        ? { kind, id, category: finalCategory, title: conv(title.trim()), body: conv(body.trim()) }
+        ? { kind, id, category: finalCategory, title: conv(title.trim()), body: conv(body.trim()), imageUrl: imgUrl, oldImageUrl: edit?.kind === "thought" ? edit.image_url ?? null : null }
         : { kind, id, category: finalCategory, quote: conv(body.trim()), tone, videoUrl: url, oldVideoUrl: edit?.kind === "short" ? edit.video_url : null },
     );
     setBusy(false);
@@ -103,6 +126,22 @@ export function Composer({ state, onClose }: { state: Exclude<ComposerState, nul
           )}
 
           <input value={topic} onChange={(e) => setTopic(e.target.value)} maxLength={30} aria-label={u("Mavzu")} placeholder={u("Mavzu (masalan: Sport)")} className={field} />
+
+          {kind === "thought" && (
+            <div className="rounded-2xl border border-line p-3">
+              <input ref={imgPicker} type="file" accept="image/jpeg,image/png,image/webp" className="sr-only" aria-label={u("Rasm tanlash")}
+                onChange={(e) => { pickImage(e.target.files?.[0]); e.target.value = ""; }} />
+              <div className="flex items-center gap-3">
+                <button className="flex min-h-[44px] items-center gap-2 rounded-xl bg-sand px-4 text-[13px] font-semibold" onClick={() => imgPicker.current?.click()}>
+                  <ImagePlus size={18} /> {preview ? u("Rasmni almashtirish") : u("Rasm tanlash")}
+                </button>
+                {preview && <button className="min-h-[44px] px-2 text-[13px] text-clay" onClick={() => { setImgFile(null); setImage(null); }}>{u("Olib tashlash")}</button>}
+              </div>
+              {preview && <img src={preview} alt="" className="mt-3 h-36 w-full rounded-xl object-cover" />}
+              <p className="mt-2 text-[12px] text-muted">{u("Ixtiyoriy. Qorong‘i, tumanli rasm yaxshi chiqadi (JPG/PNG/WebP, 5 MB gacha).")}</p>
+              {imgError && <p role="alert" className="mt-1 text-[13px] text-clay">{u(imgError)}</p>}
+            </div>
+          )}
 
           {kind === "thought" && (
             <input value={title} onChange={(e) => setTitle(e.target.value)} maxLength={140} aria-label={u("Sarlavha")} placeholder={u("Sarlavha")} className={field} />

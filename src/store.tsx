@@ -9,13 +9,13 @@ type Status = "loading" | "ready" | "guest" | "unconfigured";
 type Alpha = "new" | "old";
 /** id bo‘lsa tahrirlash, bo‘lmasa yangi joylash. */
 export type PublishInput =
-  | { kind: "thought"; id?: number; category: api.Category; title: string; body: string }
+  | { kind: "thought"; id?: number; category: api.Category; title: string; body: string; imageUrl?: string | null; oldImageUrl?: string | null }
   | { kind: "short"; id?: number; category: api.Category; quote: string; tone: api.Short["tone"]; videoUrl: string | null; oldVideoUrl?: string | null };
 
 export type ComposerState =
   | null
   | { mode: "new" }
-  | { mode: "edit"; kind: "thought"; id: number; category: api.Category; title: string; body: string }
+  | { mode: "edit"; kind: "thought"; id: number; category: api.Category; title: string; body: string; image_url?: string | null }
   | { mode: "edit"; kind: "short"; id: number; category: api.Category; quote: string; tone: api.Short["tone"]; video_url: string | null };
 
 type Store = {
@@ -185,9 +185,12 @@ export function AppProvider({ children }: { children: ReactNode }) {
     if (!profile || !canWrite) return false;
     try {
       if (p.kind === "thought") {
-        const body = { category: p.category, title: p.title, body: p.body };
+        // image_url faqat rasm bor (yoki olib tashlanayotgan) bo‘lsa yuboriladi: 0008 migratsiyasisiz ham eski yozish ishlayveradi.
+        const withImg = p.imageUrl || p.oldImageUrl ? { image_url: p.imageUrl ?? null } : {};
+        const body = { category: p.category, title: p.title, body: p.body, ...withImg };
         if (p.id) await api.updateThought(p.id, body);
         else await api.createThought(profile.id, body);
+        if (p.oldImageUrl && p.oldImageUrl !== p.imageUrl) void api.removeVideo(p.oldImageUrl);
         const rows = await api.getFeed();
         feedSeq.current++;
         setThoughts(rows);
@@ -205,7 +208,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     } catch (e) {
       haptic.err();
       const m = e instanceof Error ? e.message : "";
-      flash(/category_check/.test(m) ? "Bazada 0006_categories.sql ishga tushirilmagan" : `Saqlab bo‘lmadi${m ? ": " + m : ""}`.slice(0, 140));
+      flash(/category_check/.test(m) ? "Bazada 0006_categories.sql ishga tushirilmagan" : /image_url/.test(m) ? "Bazada 0008_thought_image.sql ishga tushirilmagan" : `Saqlab bo‘lmadi${m ? ": " + m : ""}`.slice(0, 140));
       return false;
     }
   };
@@ -214,7 +217,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
     if (!canWrite) return;
     try {
       if (kind === "thought") {
+        const img = thoughts.find((x) => x.id === id)?.image_url ?? null;
         await api.deleteThought(id);
+        void api.removeVideo(img);
         setThoughts((v) => v.filter((x) => x.id !== id));
       } else {
         const video = shorts.find((x) => x.id === id)?.video_url ?? null;
