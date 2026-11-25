@@ -3,21 +3,18 @@ import { AnimatePresence, motion } from "framer-motion";
 import { Bookmark, Clapperboard, House, Plus, Sparkles, UserRound } from "lucide-react";
 import { Composer } from "./components/Composer";
 import { Intro } from "./components/Intro";
-import { SearchSheet } from "./components/SearchSheet";
 import { Wordmark } from "./components/Wordmark";
 import { Home } from "./pages/Home";
 import { Profile } from "./pages/Profile";
 import { Saved } from "./pages/Saved";
 import { Shorts } from "./pages/Shorts";
-import type { Thought } from "./lib/api";
 import { useApp } from "./store";
 
 type Tab = "home" | "shorts" | "saved" | "profile";
 
 export default function App() {
-  const { status, loginError, notice, u, canWrite, composer, setComposer, thoughts, requestOpen, injectThought } = useApp();
+  const { status, loginError, notice, u, canWrite, composer, setComposer, thoughts, requestOpen } = useApp();
   const [tab, setTab] = useState<Tab>("home");
-  const [searching, setSearching] = useState(false);
   const [entered, setEntered] = useState(false);
   const [opening, setOpening] = useState(false);
 
@@ -26,13 +23,6 @@ export default function App() {
     if (canWrite) return setComposer({ mode: "new" });
     const t = thoughts[Math.floor(Math.random() * thoughts.length)];
     if (t) { requestOpen(t.id); setTab("home"); }
-  };
-
-  const pick = (t: Thought) => {
-    injectThought(t);
-    requestOpen(t.id);
-    setTab("home");
-    setSearching(false);
   };
 
   let content;
@@ -67,7 +57,7 @@ export default function App() {
           <Wordmark spinStar className="h-[36px] w-auto" />
         </header>
         <main className="min-h-0 flex-1 overflow-y-auto">
-          {tab === "home" ? <Home onSearch={() => setSearching(true)} /> : tab === "shorts" ? <Shorts /> : tab === "saved" ? <Saved onOpen={() => setTab("home")} /> : <Profile />}
+          {tab === "home" ? <Home /> : tab === "shorts" ? <Shorts /> : tab === "saved" ? <Saved onOpen={() => setTab("home")} /> : <Profile />}
         </main>
         <nav className="glass mx-3 mb-[calc(8px+env(safe-area-inset-bottom,0px))] mt-1 flex items-center rounded-[30px] px-2">
           {item("home", "Bosh sahifa", ic(House, "home"))}
@@ -79,7 +69,6 @@ export default function App() {
           {item("saved", "Saqlanganlar", ic(Bookmark, "saved"))}
           {item("profile", "Profil", ic(UserRound, "profile"))}
         </nav>
-        <AnimatePresence>{searching && <SearchSheet key="search" onClose={() => setSearching(false)} onPick={pick} />}</AnimatePresence>
         <AnimatePresence>{composer && <Composer key={composer.mode === "edit" ? `${composer.kind}-${composer.id}` : "new"} state={composer} onClose={() => setComposer(null)} />}</AnimatePresence>
         {notice && <div role="status" className="fixed left-1/2 top-20 z-[60] -translate-x-1/2 rounded-full bg-ink px-5 py-2.5 text-[13px] font-semibold text-paper">{u(notice)}</div>}
       </div>
