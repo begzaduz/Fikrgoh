@@ -18,7 +18,7 @@ async function hmac(key: ArrayBuffer | string, msg: string) {
 }
 const safeEqual = (a: string, b: string) => a.length === b.length && [...a].reduce((d, c, i) => d | (c.charCodeAt(0) ^ b.charCodeAt(i)), 0) === 0;
 
-type TgUser = { id: number; first_name: string; username?: string };
+type TgUser = { id: number; first_name: string; last_name?: string; username?: string; photo_url?: string };
 
 async function verifyInitData(initData: string, botToken: string): Promise<TgUser | null> {
   const p = new URLSearchParams(initData);
@@ -70,10 +70,11 @@ Deno.serve(async (req) => {
   }
 
   const uid = data.user!.id;
-  const { error: pe } = await admin.from("profiles").upsert(
-    { id: uid, telegram_id: user.id, first_name: user.first_name, username: user.username ?? null, ...(adminIds.includes(user.id) ? { role: "admin" } : {}) },
-    { onConflict: "id" },
-  );
+  // Har kirishda Telegram'dagi ism, username va rasm bazaga yangilanadi.
+  const base = { id: uid, telegram_id: user.id, first_name: user.first_name, username: user.username ?? null, ...(adminIds.includes(user.id) ? { role: "admin" } : {}) };
+  let { error: pe } = await admin.from("profiles").upsert({ ...base, photo_url: user.photo_url ?? null }, { onConflict: "id" });
+  // photo_url ustuni (0007) hali yo‘q bo‘lsa, kirish buzilmasin: rasmsiz saqlaymiz.
+  if (pe) ({ error: pe } = await admin.from("profiles").upsert(base, { onConflict: "id" }));
   if (pe) return json({ error: "Profil saqlanmadi" }, 500);
 
   return json({ access_token: data.session!.access_token, refresh_token: data.session!.refresh_token });

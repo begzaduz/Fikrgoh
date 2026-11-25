@@ -17,6 +17,14 @@ const BADGES = [
 
 const dm = (day: string) => `${day.slice(8, 10)}.${day.slice(5, 7)}`;
 
+/** Telegram profil rasmi; ochilmasa ismning bosh harfi. */
+function Avatar({ url, name }: { url: string | null; name: string }) {
+  const [bad, setBad] = useState(false);
+  const box = "flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-full bg-clay text-[22px] font-bold text-onclay";
+  if (url && !bad) return <span className={box}><img src={url} alt="" referrerPolicy="no-referrer" onError={() => setBad(true)} className="h-full w-full object-cover" /></span>;
+  return <span className={box} aria-hidden="true">{name.charAt(0).toUpperCase() || "·"}</span>;
+}
+
 export function Profile() {
   const { profile, stats, statsError, reloadStats, thoughts, history, alphabet, changeAlphabet, theme, setTheme, u, c } = useApp();
   const [sel, setSel] = useState<number | null>(null);   // tanlangan hafta kuni (null — hammasi)
@@ -34,7 +42,10 @@ export function Profile() {
   return (
     <div className="px-5 pb-10 pt-4">
       <h1 className="font-display text-[46px] leading-[1.02]">{u("Mening")}<br />{u("yo‘lim")}</h1>
-      <p className="mt-2 text-[14px] text-muted">{profile?.first_name ?? u("Mehmon")}{profile?.username ? ` · @${profile.username}` : ""}</p>
+      <div className="mt-3 flex items-center gap-3">
+        <Avatar url={profile?.photo_url ?? null} name={profile?.first_name ?? ""} />
+        <p className="text-[14px] text-muted"><span className="block text-[17px] font-semibold text-ink">{profile?.first_name ?? u("Mehmon")}</span>{profile?.username ? `@${profile.username}` : ""}</p>
+      </div>
 
       {!stats && statsError && (
         <section className="glass mt-6 rounded-[24px] p-4" role="alert">

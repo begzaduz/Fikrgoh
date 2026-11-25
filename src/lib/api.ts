@@ -6,7 +6,7 @@ export type Category = string;
 export type Thought = { id: number; category: Category; title: string; body: string; read_minutes: number; created_at: string; likes: number; liked: boolean; saved: boolean };
 export type Short = { id: number; category: Category; quote: string; tone: "sand" | "sage" | "ink" | "clay"; video_url: string | null; likes: number; liked: boolean };
 export type Stats = { reads: number; categories: number; streak: number; today: boolean; week: boolean[]; todayIndex: number; level: 0 | 1 | 2; levelTo: number | null };
-export type Profile = { id: string; first_name: string; username: string | null; role: "reader" | "admin"; alphabet: "new" | "old" };
+export type Profile = { id: string; first_name: string; username: string | null; photo_url?: string | null; role: "reader" | "admin"; alphabet: "new" | "old" };
 
 const must = <T>(r: { data: T | null; error: { message: string } | null }): T => {
   if (r.error || r.data === null) throw new Error(r.error?.message ?? "no data");
@@ -17,12 +17,15 @@ const must = <T>(r: { data: T | null; error: { message: string } | null }): T =>
 export async function login(): Promise<{ ok: boolean; error?: string }> {
   const { data } = await supabase.auth.getSession();
   const initData = tg()?.initData;
+  let hasSession = false;
   if (data.session) {
     // Telegram bir qurilmada bir necha akkaunt uchun bir xil saqlash joyini beradi: sessiya hozir ochayotgan akkauntniki bo‘lishi shart.
     const want = initData ? tgUserId(initData) : null;
     const have = Number(data.session.user?.user_metadata?.telegram_id) || null;
-    if (want === null || want === have) return { ok: true };
-    await supabase.auth.signOut({ scope: "local" });
+    if (want === null || want === have) {
+      if (!initData) return { ok: true };
+      hasSession = true; // Ism/rasm Telegram'da o‘zgargan bo‘lishi mumkin: kirish funksiyasi profilni yangilaydi.
+    } else await supabase.auth.signOut({ scope: "local" });
   }
   const body = initData ? { initData } : import.meta.env.DEV ? { dev: { telegramId: 100001, firstName: "Bekzod" } } : null;
   if (!body) return { ok: false, error: "Telegram ma’lumoti (initData) kelmadi" };
@@ -36,15 +39,24 @@ export async function login(): Promise<{ ok: boolean; error?: string }> {
       body: JSON.stringify(body),
     });
   } catch (e) {
+    if (hasSession) return { ok: true }; // tarmoq yo‘q: eski sessiya bilan davom etamiz
     return { ok: false, error: `Tarmoq xatosi (${e instanceof Error ? e.message : "noma’lum"})` };
   }
   const out = (await res.json().catch(() => null)) as { access_token?: string; refresh_token?: string; error?: string; message?: string } | null;
-  if (!res.ok || !out?.access_token) return { ok: false, error: `${res.status}: ${out?.error ?? out?.message ?? "javob noto‘g‘ri"}` };
+  if (!res.ok || !out?.access_token) {
+    if (hasSession) return { ok: true };
+    return { ok: false, error: `${res.status}: ${out?.error ?? out?.message ?? "javob noto‘g‘ri"}` };
+  }
   const set = await supabase.auth.setSession({ access_token: out.access_token, refresh_token: out.refresh_token ?? "" });
   return set.error ? { ok: false, error: set.error.message } : { ok: true };
 }
 
-export const getProfile = async () => must(await supabase.from("profiles").select("id, first_name, username, role, alphabet").single()) as Profile;
+export const getProfile = async () => {
+  const full = await supabase.from("profiles").select("id, first_name, username, photo_url, role, alphabet").single();
+  if (!full.error && full.data) return full.data as Profile;
+  // photo_url ustuni (0007_profile_photo.sql) hali yaratilmagan bo‘lsa ham profil ishlashi uchun.
+  return must(await supabase.from("profiles").select("id, first_name, username, role, alphabet").single()) as Profile;
+};
 export const setAlphabet = async (alphabet: "new" | "old") => {
   const r = await supabase.from("profiles").update({ alphabet }).not("id", "is", null);
   if (r.error) throw new Error(r.error.message);
