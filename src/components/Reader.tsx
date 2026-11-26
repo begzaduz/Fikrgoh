@@ -4,6 +4,7 @@ import { ArrowLeft } from "lucide-react";
 import { proxied, type Thought } from "../lib/api";
 import { useApp } from "../store";
 import { catLabel, ReactionBar } from "./ThoughtCard";
+import { SlideDeck } from "./SlideCanvas";
 
 /** O‘qish tezligi (so‘z/daqiqa): kartaning vaqti shundan hisoblanadi. Tezroq o‘tishi uchun oshiring. */
 const WPM = 120;
@@ -40,7 +41,7 @@ function chunk(p: string, max = CHUNK): string[] {
  * Chuqur o‘qish: scrollsiz, kartalar o‘zi almashadi. Tepada umumiy qolgan vaqt kamayib boradi,
  * fonda yumshoq shovqin (tepadagi tugma bilan o‘chiriladi). Bosib turing — pauza.
  */
-export function Reader({ t, onClose }: { t: Thought; onClose: () => void }) {
+function TimedReader({ t, onClose }: { t: Thought; onClose: () => void }) {
   const { u, c } = useApp();
   const words = useMemo(() => c(t.body).split(/\n\s*\n/).flatMap((p) => chunk(p.trim())).filter(Boolean).map((p) => p.split(/\s+/)), [t.body, c]);
   const total = words.length + 1; // 0-karta: sarlavha
@@ -173,4 +174,64 @@ export function Reader({ t, onClose }: { t: Thought; onClose: () => void }) {
       )}
     </div>
   );
+}
+
+
+/** Yangi editorial yozuvlar uchun scroll o‘qish rejimi; eski maqolalar avvalgi immersive rejimda qoladi. */
+function EditorialReader({ t, onClose }: { t: Thought; onClose: () => void }) {
+  const { u, c } = useApp();
+  const blocks = t.blocks ?? [];
+  return (
+    <div className="fixed inset-0 z-50 flex justify-center overflow-y-auto bg-paper text-ink" role="dialog" aria-modal="true" aria-label={c(t.title)}>
+      <article className="relative min-h-full w-full max-w-[560px] pb-[calc(32px+env(safe-area-inset-bottom,0px))]">
+        <header className="sticky top-0 z-20 flex items-center justify-between border-b border-line bg-paper/90 px-5 py-3 backdrop-blur-xl" style={{ paddingTop: "calc(10px + var(--safe-top))" }}>
+          <button className="glass flex h-11 w-11 items-center justify-center rounded-full" onClick={onClose} aria-label={u("Orqaga")}><ArrowLeft size={20}/></button>
+          <span className="text-xs font-semibold text-muted">{u(t.format === "quick" ? "Qisqa fikr" : "Maqola")}</span>
+          <span className="w-11"/>
+        </header>
+        {t.image_url && <img src={proxied(t.image_url)} alt="" className="max-h-[42vh] w-full object-cover"/>}
+        <div className="px-6 pt-8">
+          <span className="text-[12px] font-semibold uppercase tracking-[.12em] text-clay">{catLabel(t.category, u, c)}</span>
+          <h1 className="mt-3 text-balance font-display text-[34px] font-semibold leading-[1.12]">{c(t.title)}</h1>
+          <p className="mt-3 text-[12px] text-muted">{t.read_minutes} {u("daqiqa o‘qish")}</p>
+        </div>
+        <div className="space-y-6 px-6 pb-8 pt-8">
+          {blocks.length ? blocks.map((b) => {
+            if (b.type === "divider") return <div key={b.id} className="h-px bg-line"/>;
+            if (b.type === "image") return <figure key={b.id} className="space-y-2"><img src={proxied(b.url ?? "")} alt="" className="w-full rounded-2xl object-cover"/>{b.caption && <figcaption className="text-center text-xs text-muted">{c(b.caption)}</figcaption>}</figure>;
+            if (b.type === "heading") return <h2 key={b.id} className="pt-2 text-[22px] font-semibold leading-tight">{c(b.text ?? "")}</h2>;
+            if (b.type === "quote") return <blockquote key={b.id} className="border-l-2 border-clay py-1 pl-5 font-serif text-[21px] italic leading-relaxed">{c(b.text ?? "")}</blockquote>;
+            if (b.type === "list") return <ul key={b.id} className="list-disc space-y-2 pl-6 font-serif text-[18px] leading-[1.7]">{(b.items ?? []).filter(Boolean).map((x,i)=><li key={i}>{c(x)}</li>)}</ul>;
+            return <p key={b.id} className="whitespace-pre-wrap font-serif text-[18px] leading-[1.8]">{c(b.text ?? "")}</p>;
+          }) : <p className="whitespace-pre-wrap font-serif text-[18px] leading-[1.8]">{c(t.body)}</p>}
+          <div className="border-t border-line pt-5"><ReactionBar t={t}/></div>
+        </div>
+      </article>
+    </div>
+  );
+}
+
+function SlideThoughtReader({ t, onClose }: { t: Thought; onClose: () => void }) {
+  const { u, c } = useApp();
+  return (
+    <div className="fixed inset-0 z-50 flex justify-center bg-black text-white" role="dialog" aria-modal="true" aria-label={c(t.title)}>
+      <div className="relative h-full w-full max-w-[560px] overflow-hidden">
+        <SlideDeck slides={t.slides ?? []} c={c}/>
+        <div className="pointer-events-none absolute inset-x-0 top-0 z-20 flex items-center justify-between bg-gradient-to-b from-black/55 to-transparent px-5 pb-8 pt-[calc(12px+var(--safe-top))]">
+          <button className="pointer-events-auto flex h-11 w-11 items-center justify-center rounded-full bg-black/35" onClick={onClose} aria-label={u("Orqaga")}><ArrowLeft size={20}/></button>
+          <span className="max-w-[65%] truncate text-right text-xs font-semibold">{c(t.title)}</span>
+        </div>
+        <div className="absolute inset-x-0 bottom-0 z-20 bg-gradient-to-t from-black/80 to-transparent px-5 pb-[calc(18px+env(safe-area-inset-bottom,0px))] pt-10">
+          <p className="mb-2 text-xs font-semibold uppercase tracking-widest text-white/70">{catLabel(t.category, u, c)}</p>
+          <ReactionBar t={t}/>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+export function Reader({ t, onClose }: { t: Thought; onClose: () => void }) {
+  if (t.format === "slides" && t.slides?.length) return <SlideThoughtReader t={t} onClose={onClose}/>;
+  if (t.blocks?.length) return <EditorialReader t={t} onClose={onClose}/>;
+  return <TimedReader t={t} onClose={onClose}/>;
 }
