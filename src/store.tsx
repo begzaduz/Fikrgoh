@@ -11,7 +11,7 @@ type Status = "loading" | "ready" | "guest" | "unconfigured";
 type Alpha = "new" | "old";
 /** id bo‘lsa tahrirlash, bo‘lmasa yangi joylash. */
 export type PublishInput =
-  | { kind: "thought"; id?: number; category: api.Category; title: string; body: string; format?: api.Thought["format"]; blocks?: ContentBlock[] | null; slides?: Slide[] | null; imageUrl?: string | null; oldImageUrl?: string | null; oldSlides?: Slide[] | null; oldBlocks?: api.ContentBlock[] | null }
+  | { kind: "thought"; id?: number; category: api.Category; title: string; body: string; format?: api.Thought["format"]; blocks?: ContentBlock[] | null; slides?: Slide[] | null; imageUrl?: string | null; oldImageUrl?: string | null; oldSlides?: Slide[] | null; oldBlocks?: ContentBlock[] | null }
   | { kind: "short"; id?: number; category: api.Category; quote: string; tone: api.Short["tone"]; videoUrl: string | null; oldVideoUrl?: string | null; slides?: Slide[] | null; oldSlides?: Slide[] | null };
 
 export type ComposerState =
