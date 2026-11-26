@@ -1,11 +1,11 @@
 import { useRef, useState } from "react";
 import { motion } from "framer-motion";
-import { Film, ImagePlus, X } from "lucide-react";
-import { MAX_IMAGE_BYTES, MAX_VIDEO_BYTES, uploadImage, uploadVideo, type Short } from "../lib/api";
+        import { Film, ImagePlus, Sparkles, X } from "lucide-react";
+import { MAX_IMAGE_BYTES, MAX_VIDEO_BYTES, aiSlides, uploadImage, uploadVideo, type Short } from "../lib/api";
 import { toNew } from "../lib/alphabet";
 import { canPlayVideo, inspectMp4 } from "../lib/video";
 import { SlideEditor } from "./SlideEditor";
-import { blankSlide, hasContent, mapText, slidesText, type Slide } from "../lib/slides";
+import { blankSlide, hasContent, mapText, slidesFromPlan, slidesText, type Slide } from "../lib/slides";
 import { useApp, type ComposerState } from "../store";
 
 const TONES: Array<[Short["tone"], string]> = [["sand", "Indigo"], ["sage", "Firuza"], ["ink", "Tun"], ["clay", "Tong"]];
@@ -35,6 +35,24 @@ export function Composer({ state, onClose }: { state: Exclude<ComposerState, nul
   const [busy, setBusy] = useState(false);
   const [checking, setChecking] = useState(false);
   const picker = useRef<HTMLInputElement>(null);
+    const [aiText, setAiText] = useState("");
+  const [aiBusy, setAiBusy] = useState(false);
+  const [aiMsg, setAiMsg] = useState("");
+  const makeSlides = async () => {
+    if (aiBusy || aiText.trim().length < 10) return;
+    if (hasContent(slides) && !window.confirm(u("Mavjud slaydlar almashtiriladi. Davom etasizmi?"))) return;
+    setAiBusy(true);
+    setAiMsg("");
+    try {
+      const r = await aiSlides(aiText.trim());
+      const next = slidesFromPlan(r.slides);
+      if (next.length) setSlides(next);
+      setAiMsg(r.note || `${next.length} ${u("slayd tayyor. Ko‘rib chiqing va kerak bo‘lsa tahrirlang.")}`);
+    } catch (e) {
+      setAiMsg(`${u("Slaydga aylantirib bo‘lmadi")}: ${e instanceof Error ? e.message : "xato"}`);
+    }
+    setAiBusy(false);
+  };
   const [image, setImage] = useState<string | null>(edit?.kind === "thought" ? edit.image_url ?? null : null);
   const [imgFile, setImgFile] = useState<File | null>(null);
   const [imgError, setImgError] = useState("");
@@ -225,6 +243,3 @@ export function Composer({ state, onClose }: { state: Exclude<ComposerState, nul
     </motion.div>
   );
 }
-
-import { Film, ImagePlus, Sparkles, X } from "lucide-react";
-import { MAX_IMAGE_BYTES, MAX_VIDEO_BYTES, aiSlides, uploadImage, uploadVideo, type Short } from "../lib/api";
