@@ -225,3 +225,6 @@ export function Composer({ state, onClose }: { state: Exclude<ComposerState, nul
     </motion.div>
   );
 }
+
+import { Film, ImagePlus, Sparkles, X } from "lucide-react";
+import { MAX_IMAGE_BYTES, MAX_VIDEO_BYTES, aiSlides, uploadImage, uploadVideo, type Short } from "../lib/api";
