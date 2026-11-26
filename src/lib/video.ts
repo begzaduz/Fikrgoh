@@ -31,7 +31,10 @@ export function canPlayVideo(file: File, timeoutMs = 8000): Promise<boolean> {
 
 export type Mp4Info = { codec: "h264" | "hevc" | "av1" | "other" | null; faststart: boolean | null };
 
-const ascii = (b: Uint8Array, from: number, len: number) => String.fromCharCode(...b.subarray(from, from + len));
+// Baytlarni matnga o‘giradi. Eski String.fromCharCode(...bytes) katta massivda RangeError berardi
+// (va catch uni yutib, tekshiruvni jimgina o‘chirib qo‘yardi); TextDecoder har qanday hajmda ishlaydi.
+const latin1 = new TextDecoder("latin1");
+const ascii = (b: Uint8Array, from: number, len: number) => latin1.decode(b.subarray(from, from + len));
 const MAX_MOOV = 16 * 1024 * 1024;
 
 /**
