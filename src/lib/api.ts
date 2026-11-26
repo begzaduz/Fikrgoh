@@ -210,7 +210,7 @@ export type AiSlide = { bg: number; layout: "quote" | "big" | "plain" | "title_b
 export async function aiSlides(text: string): Promise<{ slides: AiSlide[]; ai: boolean; note: string }> {
   const token = (await supabase.auth.getSession()).data.session?.access_token;
   if (!token) throw new Error("kirish kerak");
-  const res = await fetch(`${API_URL}/functions/v1/slide-ai`, {
+const res = await fetch(`${API_URL}/functions/v1/super-function`, {
     method: "POST",
     headers: { "Content-Type": "application/json", apikey: import.meta.env.VITE_SUPABASE_ANON_KEY as string, Authorization: `Bearer ${token}` },
     body: JSON.stringify({ text }),
