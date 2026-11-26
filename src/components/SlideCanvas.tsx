@@ -1,5 +1,12 @@
-import { useRef } from "react";
+import { useRef, useState } from "react";
+import { proxied } from "../lib/api";
 import type { El, Slide } from "../lib/slides";
+
+/** Rasm avval o‘z proksimiz (/sb) orqali, bo‘lmasa to‘g‘ridan-to‘g‘ri havola bilan ochiladi (supabase.co ba’zi tarmoqlarda yopiq). */
+function Pic({ src, ...rest }: { src: string } & React.ImgHTMLAttributes<HTMLImageElement>) {
+  const [direct, setDirect] = useState(false);
+  return <img {...rest} src={direct ? src : proxied(src)} onError={() => setDirect(true)} alt="" draggable={false} />;
+}
 
 const FONT = { display: "font-display", serif: "font-serif", sans: "font-sans" } as const;
 
@@ -37,7 +44,7 @@ export function SlideCanvas({ slide, c, fill, sel, onSel, onMove }: Props) {
     <div ref={box} onPointerDown={() => onSel?.(null)}
       className={`relative overflow-hidden ${fill ? "absolute inset-0" : "aspect-[9/16] w-full rounded-2xl"}`}
       style={{ containerType: "inline-size", background: slide.bg.css }}>
-      {slide.bg.image && <img src={slide.bg.image} alt="" className="absolute inset-0 h-full w-full object-cover" draggable={false} />}
+      {slide.bg.image && <Pic key={slide.bg.image} src={slide.bg.image} className="absolute inset-0 h-full w-full object-cover" />}
       {slide.bg.dim > 0 && <div className="absolute inset-0 bg-black" style={{ opacity: slide.bg.dim }} aria-hidden="true" />}
       {slide.els.map((e) => (
         <div key={e.id} onPointerDown={(ev) => drag(ev, e)}
@@ -51,7 +58,7 @@ export function SlideCanvas({ slide, c, fill, sel, onSel, onMove }: Props) {
               {c(e.text) || (edit ? "…" : "")}
             </p>
           ) : (
-            <img src={e.src} alt="" draggable={false} className="block w-full object-cover" style={e.round ? { borderRadius: "50%", aspectRatio: "1" } : { borderRadius: "2cqw" }} />
+            <Pic key={e.src} src={e.src} className="block w-full object-cover" style={e.round ? { borderRadius: "50%", aspectRatio: "1" } : { borderRadius: "2cqw" }} />
           )}
         </div>
       ))}

@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { ArrowDownToLine, ArrowLeft, ArrowRight, ArrowUpToLine, Bold, Copy, ImagePlus, Italic, Plus, Trash2, Undo2 } from "lucide-react";
 import { MAX_IMAGE_BYTES, uploadImage } from "../lib/api";
 import { BGS, COLORS, MAX_ELS, MAX_SLIDES, TEMPLATES, blankSlide, newText, uid, type El, type Font, type Slide, type TextKind } from "../lib/slides";
@@ -13,10 +13,13 @@ export function SlideEditor({ slides, onChange, u, c }: { slides: Slide[]; onCha
   const [sel, setSel] = useState<string | null>(null);
   const [err, setErr] = useState("");
   const [busy, setBusy] = useState<number | null>(null);
+  const panelRef = useRef<HTMLDivElement>(null);
   const hist = useRef<Slide[][]>([]);
   const last = useRef(0);
   const elPick = useRef<HTMLInputElement>(null);
   const bgPick = useRef<HTMLInputElement>(null);
+
+  useEffect(() => { if (sel) panelRef.current?.scrollIntoView({ block: "nearest", behavior: "smooth" }); }, [sel]);
 
   const i = Math.min(idx, slides.length - 1);
   const slide = slides[i]!;
@@ -81,36 +84,9 @@ export function SlideEditor({ slides, onChange, u, c }: { slides: Slide[]; onCha
       <div className="mx-auto w-[58%] max-w-[240px]">
         <SlideCanvas slide={slide} c={(s) => s} sel={sel} onSel={setSel} onMove={(id, x, y) => setEl(id, { x, y })} />
       </div>
-      <p className="text-center text-[11px] text-muted">{u("Elementni barmoq bilan suring")}</p>
-
-      <div className="space-y-2">
-        <span className="text-[12px] font-semibold text-muted">{u("Qo‘shish")}</span>
-        <div className="flex flex-wrap gap-1.5">
-          {KINDS.map(([k, l]) => <button key={k} className={btn} onClick={() => addEl(newText(k, ""))}><Plus size={14} /> {u(l)}</button>)}
-          <button className={btn} onClick={() => elPick.current?.click()} disabled={busy !== null}><ImagePlus size={16} /> {busy !== null ? `${busy}%` : u("Rasm")}</button>
-        </div>
-        <div className="flex flex-wrap gap-1.5">
-          {TEMPLATES.map((t) => <button key={t.name} className={chip(false)} onClick={() => { setSlide((s) => ({ ...s, els: t.make("") })); setSel(null); }}>{u(t.name)}</button>)}
-        </div>
-        <input ref={elPick} type="file" accept="image/jpeg,image/png,image/webp" className="sr-only" aria-label={u("Rasm tanlash")} onChange={(e) => { void upload(e.target.files?.[0], "el"); e.target.value = ""; }} />
-        <input ref={bgPick} type="file" accept="image/jpeg,image/png,image/webp" className="sr-only" aria-label={u("Fon rasmi")} onChange={(e) => { void upload(e.target.files?.[0], "bg"); e.target.value = ""; }} />
-      </div>
-
-      <div className="space-y-2">
-        <span className="text-[12px] font-semibold text-muted">{u("Fon")}</span>
-        <div className="flex flex-wrap items-center gap-2">
-          {BGS.map((b) => (
-            <button key={b} aria-label={u("Fon rangi")} onClick={() => setSlide((s) => ({ ...s, bg: { ...s.bg, css: b, image: null, dim: 0 } }))}
-              className={`h-9 w-9 rounded-full border-2 ${slide.bg.css === b && !slide.bg.image ? "border-clay" : "border-line"}`} style={{ background: b }} />
-          ))}
-          <button className={btn} onClick={() => bgPick.current?.click()}><ImagePlus size={16} /> {u("Fon rasmi")}</button>
-          {slide.bg.image && <button className={chip(false)} onClick={() => setSlide((s) => ({ ...s, bg: { ...s.bg, image: null, dim: 0 } }))}>{u("Olib tashlash")}</button>}
-        </div>
-        {slide.bg.image && range("Qorayish", slide.bg.dim, 0, 0.8, (n) => setSlide((s) => ({ ...s, bg: { ...s.bg, dim: n } })), 0.05)}
-      </div>
-
+      <p className="text-center text-[11px] text-muted">{u(el ? "Elementni barmoq bilan suring" : "Matn qo‘shing yoki slayddagi elementni bosing")}</p>
       {el && (
-        <div className="space-y-2 rounded-xl bg-sand p-3">
+        <div ref={panelRef} className="space-y-2 rounded-xl bg-sand p-3">
           {el.type === "text" && (
             <>
               <textarea value={el.text} onChange={(e) => setEl(el.id, { text: e.target.value })} maxLength={400} aria-label={u("Slayd matni")} placeholder={u("Matn yozing")}
@@ -141,6 +117,33 @@ export function SlideEditor({ slides, onChange, u, c }: { slides: Slide[]; onCha
           </div>
         </div>
       )}
+
+      <div className="space-y-2">
+        <span className="text-[12px] font-semibold text-muted">{u("Qo‘shish")}</span>
+        <div className="flex flex-wrap gap-1.5">
+          {KINDS.map(([k, l]) => <button key={k} className={btn} onClick={() => addEl(newText(k, ""))}><Plus size={14} /> {u(l)}</button>)}
+          <button className={btn} onClick={() => elPick.current?.click()} disabled={busy !== null}><ImagePlus size={16} /> {busy !== null ? `${busy}%` : u("Rasm")}</button>
+        </div>
+        <div className="flex flex-wrap gap-1.5">
+          {TEMPLATES.map((t) => <button key={t.name} className={chip(false)} onClick={() => { setSlide((s) => ({ ...s, els: t.make("") })); setSel(null); }}>{u(t.name)}</button>)}
+        </div>
+        <input ref={elPick} type="file" accept="image/jpeg,image/png,image/webp" className="sr-only" aria-label={u("Rasm tanlash")} onChange={(e) => { void upload(e.target.files?.[0], "el"); e.target.value = ""; }} />
+        <input ref={bgPick} type="file" accept="image/jpeg,image/png,image/webp" className="sr-only" aria-label={u("Fon rasmi")} onChange={(e) => { void upload(e.target.files?.[0], "bg"); e.target.value = ""; }} />
+      </div>
+
+      <div className="space-y-2">
+        <span className="text-[12px] font-semibold text-muted">{u("Fon")}</span>
+        <div className="flex flex-wrap items-center gap-2">
+          {BGS.map((b) => (
+            <button key={b} aria-label={u("Fon rangi")} onClick={() => setSlide((s) => ({ ...s, bg: { ...s.bg, css: b, image: null, dim: 0 } }))}
+              className={`h-9 w-9 rounded-full border-2 ${slide.bg.css === b && !slide.bg.image ? "border-clay" : "border-line"}`} style={{ background: b }} />
+          ))}
+          <button className={btn} onClick={() => bgPick.current?.click()}><ImagePlus size={16} /> {u("Fon rasmi")}</button>
+          {slide.bg.image && <button className={chip(false)} onClick={() => setSlide((s) => ({ ...s, bg: { ...s.bg, image: null, dim: 0 } }))}>{u("Olib tashlash")}</button>}
+        </div>
+        {slide.bg.image && range("Qorayish", slide.bg.dim, 0, 0.8, (n) => setSlide((s) => ({ ...s, bg: { ...s.bg, dim: n } })), 0.05)}
+      </div>
+
       {err && <p role="alert" className="text-[13px] text-clay">{u(err)}</p>}
     </div>
   );
