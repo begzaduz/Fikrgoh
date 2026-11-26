@@ -1,5 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import * as api from "./lib/api";
+import { slideUrls, type Slide } from "./lib/slides";
 import { toNew, toOld } from "./lib/alphabet";
 import { configured } from "./lib/supabase";
 import { haptic, tg } from "./lib/tg";
@@ -10,13 +11,13 @@ type Alpha = "new" | "old";
 /** id bo‘lsa tahrirlash, bo‘lmasa yangi joylash. */
 export type PublishInput =
   | { kind: "thought"; id?: number; category: api.Category; title: string; body: string; imageUrl?: string | null; oldImageUrl?: string | null }
-  | { kind: "short"; id?: number; category: api.Category; quote: string; tone: api.Short["tone"]; videoUrl: string | null; oldVideoUrl?: string | null };
+  | { kind: "short"; id?: number; category: api.Category; quote: string; tone: api.Short["tone"]; videoUrl: string | null; oldVideoUrl?: string | null; slides?: Slide[] | null; oldSlides?: Slide[] | null };
 
 export type ComposerState =
   | null
   | { mode: "new" }
   | { mode: "edit"; kind: "thought"; id: number; category: api.Category; title: string; body: string; image_url?: string | null }
-  | { mode: "edit"; kind: "short"; id: number; category: api.Category; quote: string; tone: api.Short["tone"]; video_url: string | null };
+  | { mode: "edit"; kind: "short"; id: number; category: api.Category; quote: string; tone: api.Short["tone"]; video_url: string | null; slides: Slide[] | null };
 
 type Store = {
   status: Status;
@@ -196,10 +197,12 @@ export function AppProvider({ children }: { children: ReactNode }) {
         setThoughts(rows);
         setHasMore(rows.length >= api.PAGE);
       } else {
-        const body = { category: p.category, quote: p.quote, tone: p.tone, video_url: p.videoUrl };
+        const body = { category: p.category, quote: p.quote, tone: p.tone, video_url: p.videoUrl, slides: p.slides?.length ? p.slides : null };
         if (p.id) await api.updateShort(p.id, body);
         else await api.createShort(body);
         if (p.oldVideoUrl && p.oldVideoUrl !== p.videoUrl) void api.removeVideo(p.oldVideoUrl);
+        const keep = new Set(slideUrls(p.slides));
+        slideUrls(p.oldSlides).filter((x) => !keep.has(x)).forEach((x) => void api.removeVideo(x));
         setShorts(await api.getShorts());
       }
       haptic.ok();
@@ -208,7 +211,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     } catch (e) {
       haptic.err();
       const m = e instanceof Error ? e.message : "";
-      flash(/category_check/.test(m) ? "Bazada 0006_categories.sql ishga tushirilmagan" : /image_url/.test(m) ? "Bazada 0008_thought_image.sql ishga tushirilmagan" : `Saqlab bo‘lmadi${m ? ": " + m : ""}`.slice(0, 140));
+      flash(/category_check/.test(m) ? "Bazada 0006_categories.sql ishga tushirilmagan" : /image_url/.test(m) ? "Bazada 0008_thought_image.sql ishga tushirilmagan" : /slides/.test(m) ? "Bazada 0009_slides.sql ishga tushirilmagan" : `Saqlab bo‘lmadi${m ? ": " + m : ""}`.slice(0, 140));
       return false;
     }
   };
@@ -222,9 +225,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
         void api.removeVideo(img);
         setThoughts((v) => v.filter((x) => x.id !== id));
       } else {
-        const video = shorts.find((x) => x.id === id)?.video_url ?? null;
+        const old = shorts.find((x) => x.id === id);
         await api.deleteShort(id);
-        void api.removeVideo(video);
+        void api.removeVideo(old?.video_url ?? null);
+        slideUrls(old?.slides).forEach((x) => void api.removeVideo(x));
         setShorts((v) => v.filter((x) => x.id !== id));
       }
       haptic.ok();

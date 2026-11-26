@@ -4,6 +4,8 @@ import { Film, ImagePlus, X } from "lucide-react";
 import { MAX_IMAGE_BYTES, MAX_VIDEO_BYTES, uploadImage, uploadVideo, type Short } from "../lib/api";
 import { toNew } from "../lib/alphabet";
 import { canPlayVideo, inspectMp4 } from "../lib/video";
+import { SlideEditor } from "./SlideEditor";
+import { blankSlide, hasContent, mapText, slidesText, type Slide } from "../lib/slides";
 import { useApp, type ComposerState } from "../store";
 
 const TONES: Array<[Short["tone"], string]> = [["sand", "Indigo"], ["sage", "Firuza"], ["ink", "Tun"], ["clay", "Tong"]];
@@ -14,13 +16,16 @@ const mb = (n: number) => (n / 1024 / 1024).toFixed(1);
  * Matn eski alifboda yozilsa, yangisiga (kanonik) avtomatik o‘giriladi. Tahrirlashda matn allaqachon yangi alifboda.
  */
 export function Composer({ state, onClose }: { state: Exclude<ComposerState, null>; onClose: () => void }) {
-  const { publish, u } = useApp();
+  const { publish, u, c } = useApp();
   const edit = state.mode === "edit" ? state : null;
   const [kind, setKind] = useState<"thought" | "short">(edit?.kind ?? "thought");
   const [topic, setTopic] = useState(edit?.category ?? "");
   const [tone, setTone] = useState<Short["tone"]>(edit?.kind === "short" ? edit.tone : "sand");
   const [title, setTitle] = useState(edit?.kind === "thought" ? edit.title : "");
   const [body, setBody] = useState(edit ? (edit.kind === "thought" ? edit.body : edit.quote) : "");
+  const [slides, setSlides] = useState<Slide[]>(edit?.kind === "short" && edit.slides?.length ? edit.slides : [blankSlide()]);
+  const [classic, setClassic] = useState(edit?.kind === "short" && !edit.slides?.length);
+  const slideMode = kind === "short" && !classic;
   const [already, setAlready] = useState(!!edit);
   const [video, setVideo] = useState<string | null>(edit?.kind === "short" ? edit.video_url : null);
   const [file, setFile] = useState<File | null>(null);
@@ -46,7 +51,7 @@ export function Composer({ state, onClose }: { state: Exclude<ComposerState, nul
   const conv = (s: string) => (already ? s : toNew(s));
   const finalCategory = conv(topic.trim().toLowerCase());
   const hasVideo = !!file || !!video;
-  const valid = kind === "thought" ? title.trim().length >= 3 && body.trim().length >= 20 : body.trim().length >= 5 || hasVideo;
+  const valid = kind === "thought" ? title.trim().length >= 3 && body.trim().length >= 20 : slideMode ? hasContent(slides) : body.trim().length >= 5 || hasVideo;
   const validAll = valid && topic.trim().length >= 2;
   const changed = !already && (conv(title) !== title || conv(body) !== body);
 
@@ -73,7 +78,7 @@ export function Composer({ state, onClose }: { state: Exclude<ComposerState, nul
     if (!validAll || busy) return;
     setBusy(true);
     let url = video;
-    if (kind === "short" && file) {
+    if (kind === "short" && file && !slideMode) {
       try {
         setProgress(0);
         url = await uploadVideo(file, setProgress);
@@ -98,7 +103,9 @@ export function Composer({ state, onClose }: { state: Exclude<ComposerState, nul
     const ok = await publish(
       kind === "thought"
         ? { kind, id, category: finalCategory, title: conv(title.trim()), body: conv(body.trim()), imageUrl: imgUrl, oldImageUrl: edit?.kind === "thought" ? edit.image_url ?? null : null }
-        : { kind, id, category: finalCategory, quote: conv(body.trim()), tone, videoUrl: url, oldVideoUrl: edit?.kind === "short" ? edit.video_url : null },
+        : slideMode
+          ? { kind, id, category: finalCategory, quote: conv(slidesText(slides)).slice(0, 280), tone, videoUrl: null, oldVideoUrl: edit?.kind === "short" ? edit.video_url : null, slides: mapText(slides, conv), oldSlides: edit?.kind === "short" ? edit.slides : null }
+          : { kind, id, category: finalCategory, quote: conv(body.trim()), tone, videoUrl: url, oldVideoUrl: edit?.kind === "short" ? edit.video_url : null, slides: null, oldSlides: edit?.kind === "short" ? edit.slides : null },
     );
     setBusy(false);
     setProgress(null);
@@ -146,12 +153,19 @@ export function Composer({ state, onClose }: { state: Exclude<ComposerState, nul
           {kind === "thought" && (
             <input value={title} onChange={(e) => setTitle(e.target.value)} maxLength={140} aria-label={u("Sarlavha")} placeholder={u("Sarlavha")} className={field} />
           )}
-          <textarea value={body} onChange={(e) => setBody(e.target.value)} maxLength={kind === "thought" ? 8000 : 280}
+          {kind === "short" && (
+            <div className="flex gap-2" role="group" aria-label={u("Short turi")}>
+              <button className={chip(!classic)} aria-pressed={!classic} onClick={() => setClassic(false)}>{u("Slaydlar")}</button>
+              <button className={chip(classic)} aria-pressed={classic} onClick={() => setClassic(true)}>{u("Matn / video")}</button>
+            </div>
+          )}
+          {slideMode && <SlideEditor slides={slides} onChange={setSlides} u={u} c={c} />}
+          {!slideMode && <textarea value={body} onChange={(e) => setBody(e.target.value)} maxLength={kind === "thought" ? 8000 : 280}
             aria-label={kind === "thought" ? u("Matn") : u("Qisqa matn")}
             placeholder={kind === "thought" ? u("Matn (abzaslar orasiga bo‘sh qator qoldiring)") : u("Qisqa fikr yoki video izohi")}
-            className={`${field} ${kind === "thought" ? "min-h-[220px]" : "min-h-[110px]"} resize-none`} />
+            className={`${field} ${kind === "thought" ? "min-h-[220px]" : "min-h-[110px]"} resize-none`} />}
 
-          {kind === "short" && (
+          {kind === "short" && !slideMode && (
             <>
               <div className="rounded-2xl border border-line p-3">
                 <input ref={picker} type="file" accept="video/mp4,video/webm,video/quicktime" className="sr-only" aria-label={u("Video tanlash")}
@@ -193,7 +207,7 @@ export function Composer({ state, onClose }: { state: Exclude<ComposerState, nul
             </label>
           )}
 
-          {changed && (
+          {changed && !slideMode && (
             <div className="rounded-2xl bg-sand p-3 text-[14px]" aria-live="polite">
               <span className="text-[12px] text-muted">{u("Yangi alifboda joylanadi:")}</span>
               {kind === "thought" && <p className="mt-1 font-serif text-[17px] font-semibold">{conv(title)}</p>}

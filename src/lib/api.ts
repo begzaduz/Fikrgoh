@@ -1,10 +1,11 @@
 import { API_URL, supabase } from "./supabase";
 import { tg, tgUserId } from "./tg";
+import { cleanSlides, type Slide } from "./slides";
 
 /** Asosiy yo‘nalishlar: fikr, mindset, madaniyat. Admin boshqa mavzuni ham o‘zi yozishi mumkin. */
 export type Category = string;
 export type Thought = { id: number; category: Category; title: string; body: string; read_minutes: number; created_at: string; likes: number; liked: boolean; saved: boolean; image_url?: string | null };
-export type Short = { id: number; category: Category; quote: string; tone: "sand" | "sage" | "ink" | "clay"; video_url: string | null; likes: number; liked: boolean };
+export type Short = { id: number; category: Category; quote: string; tone: "sand" | "sage" | "ink" | "clay"; video_url: string | null; slides: Slide[] | null; likes: number; liked: boolean };
 export type Stats = { reads: number; categories: number; streak: number; today: boolean; week: boolean[]; todayIndex: number; level: 0 | 1 | 2; levelTo: number | null };
 export type Profile = { id: string; first_name: string; username: string | null; photo_url?: string | null; role: "reader" | "admin"; alphabet: "new" | "old" };
 
@@ -67,19 +68,24 @@ export const getFeed = async (q = "", offset = 0) =>
   must(await supabase.rpc("feed", { p_q: q || null, p_limit: PAGE, ...(offset > 0 ? { p_offset: offset } : {}) })) as Thought[];
 /** video_url ustuni (0002_media.sql) hali yaratilmagan bo‘lsa ham ro‘yxat ishlashi uchun zaxira so‘rov. Yoqtirishlar (0004) bo‘lmasa 0 deb olinadi. */
 export const getShorts = async (): Promise<Short[]> => {
-  type Row = Omit<Short, "likes" | "liked">;
+  type Row = Omit<Short, "likes" | "liked" | "slides"> & { slides?: unknown };
   let rows: Row[];
-  const full = await supabase.from("shorts").select("id, category, quote, tone, video_url").eq("published", true).order("position");
+  const full = await supabase.from("shorts").select("id, category, quote, tone, video_url, slides").eq("published", true).order("position");
   if (!full.error) rows = (full.data ?? []) as Row[];
   else {
+    // slides ustuni (0009) yoki video_url (0002) yo‘q bo‘lsa, zaxira so‘rovlar.
+    const mid = await supabase.from("shorts").select("id, category, quote, tone, video_url").eq("published", true).order("position");
+    if (!mid.error) rows = (mid.data ?? []) as Row[];
+    else {
     const basic = await supabase.from("shorts").select("id, category, quote, tone").eq("published", true).order("position");
     if (basic.error) throw new Error(basic.error.message);
     rows = (basic.data ?? []).map((x) => ({ ...x, video_url: null })) as Row[];
+    }
   }
   const sum = await supabase.rpc("short_likes_summary");
   const list = !sum.error && Array.isArray(sum.data) ? (sum.data as Array<{ short_id: number; likes: number | string; liked: boolean }>) : [];
   const by = new Map(list.map((r) => [r.short_id, r]));
-  return rows.map((x) => ({ ...x, likes: Number(by.get(x.id)?.likes ?? 0), liked: !!by.get(x.id)?.liked }));
+  return rows.map((x) => ({ ...x, slides: cleanSlides(x.slides), likes: Number(by.get(x.id)?.likes ?? 0), liked: !!by.get(x.id)?.liked }));
 };
 
 export async function setShortLike(shortId: number, on: boolean) {
@@ -134,7 +140,7 @@ export async function deleteThought(id: number) {
   if (!r.data?.length) throw new Error("topilmadi yoki ruxsat yo‘q");
 }
 
-type ShortInput = { category: Category; quote: string; tone: Short["tone"]; video_url: string | null };
+type ShortInput = { category: Category; quote: string; tone: Short["tone"]; video_url: string | null; slides: Slide[] | null };
 export async function createShort(p: ShortInput) {
   // Yangisi birinchi chiqishi uchun salbiy tartib raqami (ro‘yxat position bo‘yicha o‘sish tartibida).
   fail((await supabase.from("shorts").insert({ ...p, position: -Math.floor(Date.now() / 1000) })).error);

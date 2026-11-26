@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { Heart, Send, Volume2, VolumeX } from "lucide-react";
 import { AdminMenu } from "../components/AdminMenu";
 import { catLabel } from "../components/ThoughtCard";
+import { SlideDeck } from "../components/SlideCanvas";
 import { proxied, type Short } from "../lib/api";
 import { share } from "../lib/tg";
 import { useApp } from "../store";
@@ -50,11 +51,15 @@ function ShortCard({ s }: { s: Short }) {
     if (visible.current) tryPlay(v);
   }, [src, muted]);
 
-  const hasVideo = !!s.video_url && !failed;
+  const hasSlides = !!s.slides?.length;
+  const hasVideo = !hasSlides && !!s.video_url && !failed;
   const btn = "flex h-12 w-12 items-center justify-center rounded-full bg-white/15";
+  const soft2 = hasSlides ? { background: "rgba(0,0,0,.4)" } : soft;
+  const strong2 = hasSlides ? { background: "rgba(0,0,0,.65)" } : strong;
   const label = (cat: string) => catLabel(cat, u, c);
   return (
-    <section ref={box} className={`relative flex h-full snap-start flex-col px-6 pb-8 pt-6 ${hasVideo ? "bg-black text-white" : TONE[s.tone]}`}>
+    <section ref={box} className={`relative flex h-full snap-start flex-col px-6 pb-8 pt-6 ${hasSlides ? "bg-black text-white" : hasVideo ? "bg-black text-white" : TONE[s.tone]}`}>
+      {hasSlides && <SlideDeck slides={s.slides!} c={c} />}
       {hasVideo && (
         <>
           <video ref={vid} src={src} muted={muted} loop playsInline preload="metadata" onError={(e) => { if (direct || src === s.video_url) { setErrCode(e.currentTarget.error?.code ?? null); setFailed(true); } else setDirect(true); }} className="absolute inset-0 h-full w-full object-cover" />
@@ -66,17 +71,17 @@ function ShortCard({ s }: { s: Short }) {
 
       {/* Matnli kartada matn o‘rtada, videoda pastda (o‘ng tomonda tugmalar uchun joy qoldiriladi). */}
       <div className={`relative flex flex-1 pr-16 ${hasVideo ? "items-end" : "items-center"}`}>
-        {s.quote && <p className={`font-display leading-[1.12] text-balance ${s.quote.length > 140 ? "text-[26px]" : s.quote.length > 70 ? "text-[32px]" : "text-[40px]"}`}>{c(s.quote)}</p>}
+        {!hasSlides && s.quote && <p className={`font-display leading-[1.12] text-balance ${s.quote.length > 140 ? "text-[26px]" : s.quote.length > 70 ? "text-[32px]" : "text-[40px]"}`}>{c(s.quote)}</p>}
       </div>
 
       <div className="absolute bottom-8 right-4 z-10 flex flex-col items-center gap-4">
         <div className="flex flex-col items-center gap-1">
-          <button className={btn} style={s.liked ? strong : soft} aria-label={u("Yoqtirish")} aria-pressed={s.liked} onClick={() => reactShort(s)}>
+          <button className={btn} style={s.liked ? strong2 : soft2} aria-label={u("Yoqtirish")} aria-pressed={s.liked} onClick={() => reactShort(s)}>
             <Heart size={24} fill={s.liked ? "currentColor" : "none"} />
           </button>
           <span className="min-h-[16px] text-[12px] font-semibold opacity-90">{s.likes > 0 ? s.likes : ""}</span>
         </div>
-        <button className={btn} style={soft} aria-label={u("Ulashish")} onClick={() => share(s.quote ? c(s.quote) : "fikrnomiya", s.id)}>
+        <button className={btn} style={soft2} aria-label={u("Ulashish")} onClick={() => share(s.quote ? c(s.quote) : "fikrnomiya", s.id)}>
           <Send size={22} />
         </button>
         {hasVideo && (
@@ -88,7 +93,7 @@ function ShortCard({ s }: { s: Short }) {
 
       {canWrite && (
         <div className="absolute right-3 top-3 z-10">
-          <AdminMenu light onEdit={() => setComposer({ mode: "edit", kind: "short", id: s.id, category: s.category, quote: s.quote, tone: s.tone, video_url: s.video_url })} onDelete={() => remove("short", s.id)} />
+          <AdminMenu light onEdit={() => setComposer({ mode: "edit", kind: "short", id: s.id, category: s.category, quote: s.quote, tone: s.tone, video_url: s.video_url, slides: s.slides })} onDelete={() => remove("short", s.id)} />
         </div>
       )}
     </section>
