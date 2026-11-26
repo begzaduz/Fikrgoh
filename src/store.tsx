@@ -10,13 +10,13 @@ type Status = "loading" | "ready" | "guest" | "unconfigured";
 type Alpha = "new" | "old";
 /** id bo‘lsa tahrirlash, bo‘lmasa yangi joylash. */
 export type PublishInput =
-  | { kind: "thought"; id?: number; category: api.Category; title: string; body: string; imageUrl?: string | null; oldImageUrl?: string | null }
+  | { kind: "thought"; id?: number; category: api.Category; title: string; body: string; format?: api.Thought["format"]; blocks?: api.ContentBlock[] | null; slides?: Slide[] | null; imageUrl?: string | null; oldImageUrl?: string | null; oldSlides?: Slide[] | null; oldBlocks?: api.ContentBlock[] | null }
   | { kind: "short"; id?: number; category: api.Category; quote: string; tone: api.Short["tone"]; videoUrl: string | null; oldVideoUrl?: string | null; slides?: Slide[] | null; oldSlides?: Slide[] | null };
 
 export type ComposerState =
   | null
   | { mode: "new" }
-  | { mode: "edit"; kind: "thought"; id: number; category: api.Category; title: string; body: string; image_url?: string | null }
+  | { mode: "edit"; kind: "thought"; id: number; category: api.Category; title: string; body: string; image_url?: string | null; format?: api.Thought["format"]; blocks?: api.ContentBlock[] | null; slides?: Slide[] | null }
   | { mode: "edit"; kind: "short"; id: number; category: api.Category; quote: string; tone: api.Short["tone"]; video_url: string | null; slides: Slide[] | null };
 
 type Store = {
@@ -188,10 +188,14 @@ export function AppProvider({ children }: { children: ReactNode }) {
       if (p.kind === "thought") {
         // image_url faqat rasm bor (yoki olib tashlanayotgan) bo‘lsa yuboriladi: 0008 migratsiyasisiz ham eski yozish ishlayveradi.
         const withImg = p.imageUrl || p.oldImageUrl ? { image_url: p.imageUrl ?? null } : {};
-        const body = { category: p.category, title: p.title, body: p.body, ...withImg };
+        const body = { category: p.category, title: p.title, body: p.body, format: p.format ?? "article" as const, blocks: p.blocks ?? null, slides: p.slides ?? null, ...withImg };
         if (p.id) await api.updateThought(p.id, body);
         else await api.createThought(profile.id, body);
         if (p.oldImageUrl && p.oldImageUrl !== p.imageUrl) void api.removeVideo(p.oldImageUrl);
+        const keepSlides = new Set(slideUrls(p.slides));
+        slideUrls(p.oldSlides).filter((x) => !keepSlides.has(x)).forEach((x) => void api.removeVideo(x));
+        const keepBlocks = new Set((p.blocks ?? []).filter((b) => b.type === "image" && b.url).map((b) => b.url!));
+        (p.oldBlocks ?? []).filter((b) => b.type === "image" && b.url && !keepBlocks.has(b.url)).forEach((b) => void api.removeVideo(b.url!));
         const rows = await api.getFeed();
         feedSeq.current++;
         setThoughts(rows);
@@ -220,9 +224,11 @@ export function AppProvider({ children }: { children: ReactNode }) {
     if (!canWrite) return;
     try {
       if (kind === "thought") {
-        const img = thoughts.find((x) => x.id === id)?.image_url ?? null;
+        const oldThought = thoughts.find((x) => x.id === id);
         await api.deleteThought(id);
-        void api.removeVideo(img);
+        void api.removeVideo(oldThought?.image_url ?? null);
+        slideUrls(oldThought?.slides).forEach((x) => void api.removeVideo(x));
+        (oldThought?.blocks ?? []).filter((b) => b.type === "image" && b.url).forEach((b) => void api.removeVideo(b.url!));
         setThoughts((v) => v.filter((x) => x.id !== id));
       } else {
         const old = shorts.find((x) => x.id === id);
