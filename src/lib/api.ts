@@ -1,10 +1,11 @@
 import { API_URL, supabase } from "./supabase";
 import { tg, tgUserId } from "./tg";
 import { cleanSlides, type Slide } from "./slides";
+import { cleanBlocks, type ContentBlock } from "./content";
 
 /** Asosiy yo‘nalishlar: fikr, mindset, madaniyat. Admin boshqa mavzuni ham o‘zi yozishi mumkin. */
 export type Category = string;
-export type Thought = { id: number; category: Category; title: string; body: string; read_minutes: number; created_at: string; likes: number; liked: boolean; saved: boolean; image_url?: string | null };
+export type Thought = { id: number; category: Category; title: string; body: string; read_minutes: number; created_at: string; likes: number; liked: boolean; saved: boolean; image_url?: string | null; format?: "quick" | "article" | "slides"; blocks?: ContentBlock[] | null; slides?: Slide[] | null };
 export type Short = { id: number; category: Category; quote: string; tone: "sand" | "sage" | "ink" | "clay"; video_url: string | null; slides: Slide[] | null; likes: number; liked: boolean };
 export type Stats = { reads: number; categories: number; streak: number; today: boolean; week: boolean[]; todayIndex: number; level: 0 | 1 | 2; levelTo: number | null };
 export type Profile = { id: string; first_name: string; username: string | null; photo_url?: string | null; role: "reader" | "admin"; alphabet: "new" | "old" };
@@ -64,8 +65,10 @@ export const setAlphabet = async (alphabet: "new" | "old") => {
 };
 export const PAGE = 30;
 /** offset > 0 bo‘lsa 0005_feed_offset.sql kerak; birinchi sahifa eski bazada ham ishlaydi. */
-export const getFeed = async (q = "", offset = 0) =>
-  must(await supabase.rpc("feed", { p_q: q || null, p_limit: PAGE, ...(offset > 0 ? { p_offset: offset } : {}) })) as Thought[];
+export const getFeed = async (q = "", offset = 0): Promise<Thought[]> => {
+  const rows = must(await supabase.rpc("feed", { p_q: q || null, p_limit: PAGE, ...(offset > 0 ? { p_offset: offset } : {}) })) as Thought[];
+  return rows.map((t) => ({ ...t, format: t.format ?? "article", blocks: cleanBlocks(t.blocks), slides: cleanSlides(t.slides) }));
+};
 /** video_url ustuni (0002_media.sql) hali yaratilmagan bo‘lsa ham ro‘yxat ishlashi uchun zaxira so‘rov. Yoqtirishlar (0004) bo‘lmasa 0 deb olinadi. */
 export const getShorts = async (): Promise<Short[]> => {
   type Row = Omit<Short, "likes" | "liked" | "slides"> & { slides?: unknown };
@@ -126,11 +129,11 @@ const fail = (e: { message: string } | null) => {
   if (e) throw new Error(e.message);
 };
 
-export async function createThought(authorId: string, p: { category: Category; title: string; body: string; image_url?: string | null }) {
-  fail((await supabase.from("thoughts").insert({ author_id: authorId, category: p.category, title: p.title, body: p.body, read_minutes: minutes(p.body), ...("image_url" in p ? { image_url: p.image_url } : {}) })).error);
+export async function createThought(authorId: string, p: { category: Category; title: string; body: string; image_url?: string | null; format?: Thought["format"]; blocks?: ContentBlock[] | null; slides?: Slide[] | null }) {
+  fail((await supabase.from("thoughts").insert({ author_id: authorId, category: p.category, title: p.title, body: p.body, read_minutes: minutes(p.body), format: p.format ?? "article", blocks: p.blocks ?? null, slides: p.slides ?? null, ...("image_url" in p ? { image_url: p.image_url } : {}) })).error);
 }
-export async function updateThought(id: number, p: { category: Category; title: string; body: string; image_url?: string | null }) {
-  const r = await supabase.from("thoughts").update({ category: p.category, title: p.title, body: p.body, read_minutes: minutes(p.body), ...("image_url" in p ? { image_url: p.image_url } : {}) }).eq("id", id).select("id");
+export async function updateThought(id: number, p: { category: Category; title: string; body: string; image_url?: string | null; format?: Thought["format"]; blocks?: ContentBlock[] | null; slides?: Slide[] | null }) {
+  const r = await supabase.from("thoughts").update({ category: p.category, title: p.title, body: p.body, read_minutes: minutes(p.body), format: p.format ?? "article", blocks: p.blocks ?? null, slides: p.slides ?? null, ...("image_url" in p ? { image_url: p.image_url } : {}) }).eq("id", id).select("id");
   fail(r.error);
   if (!r.data?.length) throw new Error("topilmadi yoki ruxsat yo‘q");
 }
