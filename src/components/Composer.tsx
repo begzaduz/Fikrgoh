@@ -177,7 +177,7 @@ export function Composer({ state, onClose }: { state: Exclude<ComposerState, nul
           {kind === "thought" && (
             <div className="flex gap-2" role="group" aria-label={u("Fikr formati")}>
               {([["quick", "Qisqa fikr"], ["article", "Maqola"], ["slides", "Slaydli fikr"]] as const).map(([f, label]) => (
-                <button key={f} className={chip(format === f)} aria-pressed={format === f} onClick={() => setFormat(f)}>{u(label)}</button>
+                <button key={f} className={chip(format === f)} aria-pressed={format === f} onClick={() => { if (f === "slides" && !aiText.trim()) setAiText(blocksToText(blocks)); setFormat(f); }}>{u(label)}</button>
               ))}
             </div>
           )}
