@@ -31,12 +31,13 @@ export function ThoughtCard({ t, onOpen }: { t: Thought; onOpen: () => void }) {
     <article className="glass relative mt-3 rounded-[26px] p-5">
       {canWrite && (
         <div className="absolute right-2 top-2">
-          <AdminMenu onEdit={() => setComposer({ mode: "edit", kind: "thought", id: t.id, category: t.category, title: t.title, body: t.body, image_url: t.image_url ?? null })} onDelete={() => remove("thought", t.id)} />
+          <AdminMenu onEdit={() => setComposer({ mode: "edit", kind: "thought", id: t.id, category: t.category, title: t.title, body: t.body, image_url: t.image_url ?? null, format: t.format ?? "article", blocks: t.blocks ?? null, slides: t.slides ?? null })} onDelete={() => remove("thought", t.id)} />
         </div>
       )}
       <button className="block w-full text-left" onClick={onOpen}>
         <span className="flex items-center gap-2.5 text-[12px] font-semibold text-clay">
           <span>{catLabel(t.category, u, c)}</span>
+          <span className="rounded-full bg-sand px-2 py-0.5 text-[10px] uppercase tracking-wide text-muted">{u(t.format === "quick" ? "Qisqa fikr" : t.format === "slides" ? "Slaydli fikr" : "Maqola")}</span>
           <span className="font-normal text-muted">· {t.read_minutes} {u("daqiqa o‘qish")}</span>
         </span>
         <h3 className="mt-2.5 pr-8 text-[22px] font-semibold leading-[1.2] text-balance">{c(t.title)}</h3>
