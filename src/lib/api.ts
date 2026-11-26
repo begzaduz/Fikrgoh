@@ -80,9 +80,9 @@ export const getShorts = async (): Promise<Short[]> => {
     const mid = await supabase.from("shorts").select("id, category, quote, tone, video_url").eq("published", true).order("position");
     if (!mid.error) rows = (mid.data ?? []) as Row[];
     else {
-    const basic = await supabase.from("shorts").select("id, category, quote, tone").eq("published", true).order("position");
-    if (basic.error) throw new Error(basic.error.message);
-    rows = (basic.data ?? []).map((x) => ({ ...x, video_url: null })) as Row[];
+      const basic = await supabase.from("shorts").select("id, category, quote, tone").eq("published", true).order("position");
+      if (basic.error) throw new Error(basic.error.message);
+      rows = (basic.data ?? []).map((x) => ({ ...x, video_url: null })) as Row[];
     }
   }
   const sum = await supabase.rpc("short_likes_summary");
@@ -208,12 +208,15 @@ export async function removeVideo(url: string | null) {
 /** Fikr rasmi uchun: yuklash bitta (video bilan bir xil bucket). */
 export const uploadImage = uploadVideo;
 
-/* ---------- AI: matnni slaydlarga bo‘lish (Edge Function slide-ai, faqat admin) ---------- */
+/* ---------- AI: matnni slaydlarga bo‘lish (Edge Function, faqat admin) ---------- */
+/** Supabase'dagi deploy nomi bilan bir xil bo‘lsin (supabase/config.toml dagi [functions.<nom>] ham shu). */
+const SLIDE_AI_FN = "super-function";
+
 export type AiSlide = { bg: number; layout: "quote" | "big" | "plain" | "title_body"; parts: string[] };
 export async function aiSlides(text: string): Promise<{ slides: AiSlide[]; ai: boolean; note: string }> {
   const token = (await supabase.auth.getSession()).data.session?.access_token;
   if (!token) throw new Error("kirish kerak");
-const res = await fetch(`${API_URL}/functions/v1/super-function`, {
+  const res = await fetch(`${API_URL}/functions/v1/${SLIDE_AI_FN}`, {
     method: "POST",
     headers: { "Content-Type": "application/json", apikey: import.meta.env.VITE_SUPABASE_ANON_KEY as string, Authorization: `Bearer ${token}` },
     body: JSON.stringify({ text }),
