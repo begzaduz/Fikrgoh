@@ -84,3 +84,18 @@ export const slideUrls = (sl?: Slide[] | null): string[] =>
   (sl ?? []).flatMap((s) => [s.bg.image, ...s.els.map((e) => (e.type === "image" ? e.src : null))].filter((x): x is string => !!x));
 
 export const hasContent = (sl: Slide[]) => sl.length > 0 && sl.some((s) => s.els.length > 0);
+
+/** AI rejasi (matn faqat asl jumlalardan) → tayyor slaydlar. Och fonlarda matn to‘q rangda. */
+export function slidesFromPlan(plan: Array<{ bg: number; layout: string; parts: string[] }>): Slide[] {
+  return plan.slice(0, MAX_SLIDES).map((p) => {
+    const bgIdx = Math.min(Math.max(p.bg, 0), BGS.length - 1);
+    const color = bgIdx === 4 || bgIdx === 5 ? "#141b45" : "#ffffff";
+    const t = p.parts[0] ?? "";
+    const els: El[] =
+      p.layout === "title_body" && p.parts[1] ? [newText("title", t, { y: 30, color }), newText("plain", p.parts[1], { y: 62, size: 20, w: 78, color })]
+      : p.layout === "quote" ? [newText("quote", t, { color, size: t.length > 140 ? 22 : 28 })]
+      : p.layout === "big" ? [newText("title", t, { y: 50, size: t.length > 40 ? 46 : 60, w: 88, color })]
+      : [newText("plain", t, { color, size: t.length > 160 ? 20 : t.length > 90 ? 24 : 28 })];
+    return { bg: { css: BGS[bgIdx]!, image: null, dim: 0 }, els };
+  });
+}
