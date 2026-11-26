@@ -215,7 +215,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     } catch (e) {
       haptic.err();
       const m = e instanceof Error ? e.message : "";
-      flash(/category_check/.test(m) ? "Bazada 0006_categories.sql ishga tushirilmagan" : /image_url/.test(m) ? "Bazada 0008_thought_image.sql ishga tushirilmagan" : /slides/.test(m) ? "Bazada 0009_slides.sql ishga tushirilmagan" : `Saqlab bo‘lmadi${m ? ": " + m : ""}`.slice(0, 140));
+      flash(/category_check/.test(m) ? "Bazada 0006_categories.sql ishga tushirilmagan" : /image_url/.test(m) ? "Bazada 0008_thought_image.sql ishga tushirilmagan" : /slides/.test(m) ? "Bazada 0009_slides.sql ishga tushirilmagan" : /format|blocks|column.*slides/i.test(m) ? "Bazada 0010_editorial_thoughts.sql migratsiyasini ishga tushiring" : `Saqlab bo‘lmadi${m ? ": " + m : ""}`.slice(0, 140));
       return false;
     }
   };
