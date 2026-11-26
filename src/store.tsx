@@ -1,6 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import * as api from "./lib/api";
 import { slideUrls, type Slide } from "./lib/slides";
+import type { ContentBlock } from "./lib/content";
 import { toNew, toOld } from "./lib/alphabet";
 import { configured } from "./lib/supabase";
 import { haptic, tg } from "./lib/tg";
@@ -10,7 +11,7 @@ type Status = "loading" | "ready" | "guest" | "unconfigured";
 type Alpha = "new" | "old";
 /** id bo‘lsa tahrirlash, bo‘lmasa yangi joylash. */
 export type PublishInput =
-  | { kind: "thought"; id?: number; category: api.Category; title: string; body: string; format?: api.Thought["format"]; blocks?: api.ContentBlock[] | null; slides?: Slide[] | null; imageUrl?: string | null; oldImageUrl?: string | null; oldSlides?: Slide[] | null; oldBlocks?: api.ContentBlock[] | null }
+  | { kind: "thought"; id?: number; category: api.Category; title: string; body: string; format?: api.Thought["format"]; blocks?: ContentBlock[] | null; slides?: Slide[] | null; imageUrl?: string | null; oldImageUrl?: string | null; oldSlides?: Slide[] | null; oldBlocks?: api.ContentBlock[] | null }
   | { kind: "short"; id?: number; category: api.Category; quote: string; tone: api.Short["tone"]; videoUrl: string | null; oldVideoUrl?: string | null; slides?: Slide[] | null; oldSlides?: Slide[] | null };
 
 export type ComposerState =
