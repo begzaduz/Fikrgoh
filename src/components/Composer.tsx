@@ -5,6 +5,9 @@ import { MAX_IMAGE_BYTES, MAX_VIDEO_BYTES, aiSlides, uploadImage, uploadVideo, t
 import { toNew } from "../lib/alphabet";
 import { canPlayVideo, inspectMp4 } from "../lib/video";
 import { SlideEditor } from "./SlideEditor";
+import { EditorialBlockEditor } from "./EditorialBlockEditor";
+import { EditorialSlideEditor } from "./EditorialSlideEditor";
+import { blocksToText, newBlock, type ContentBlock } from "../lib/content";
 import { blankSlide, hasContent, mapText, slidesFromPlan, slidesText, type Slide } from "../lib/slides";
 import { useApp, type ComposerState } from "../store";
 
@@ -19,13 +22,15 @@ export function Composer({ state, onClose }: { state: Exclude<ComposerState, nul
   const { publish, u, c } = useApp();
   const edit = state.mode === "edit" ? state : null;
   const [kind, setKind] = useState<"thought" | "short">(edit?.kind ?? "thought");
+  const [format, setFormat] = useState<"quick" | "article" | "slides">(edit?.kind === "thought" ? edit.format ?? "article" : "article");
+  const [blocks, setBlocks] = useState<ContentBlock[]>(edit?.kind === "thought" && edit.blocks?.length ? edit.blocks : [edit?.kind === "thought" && edit.body ? { id: "legacy-body", type: "text", text: edit.body } : newBlock("text")]);
   const [topic, setTopic] = useState(edit?.category ?? "");
   const [tone, setTone] = useState<Short["tone"]>(edit?.kind === "short" ? edit.tone : "sand");
   const [title, setTitle] = useState(edit?.kind === "thought" ? edit.title : "");
   const [body, setBody] = useState(edit ? (edit.kind === "thought" ? edit.body : edit.quote) : "");
-  const [slides, setSlides] = useState<Slide[]>(edit?.kind === "short" && edit.slides?.length ? edit.slides : [blankSlide()]);
+  const [slides, setSlides] = useState<Slide[]>(edit && edit.slides?.length ? edit.slides : [blankSlide()]);
   const [classic, setClassic] = useState(edit?.kind === "short" && !edit.slides?.length);
-  const slideMode = kind === "short" && !classic;
+  const slideMode = (kind === "short" && !classic) || (kind === "thought" && format === "slides");
   const [already, setAlready] = useState(!!edit);
   const [video, setVideo] = useState<string | null>(edit?.kind === "short" ? edit.video_url : null);
   const [file, setFile] = useState<File | null>(null);
@@ -69,7 +74,8 @@ export function Composer({ state, onClose }: { state: Exclude<ComposerState, nul
   const conv = (s: string) => (already ? s : toNew(s));
   const finalCategory = conv(topic.trim().toLowerCase());
   const hasVideo = !!file || !!video;
-  const valid = kind === "thought" ? title.trim().length >= 3 && body.trim().length >= 20 : slideMode ? hasContent(slides) : body.trim().length >= 5 || hasVideo;
+  const writtenBody = format === "slides" ? slidesText(slides) : blocksToText(blocks);
+  const valid = kind === "thought" ? title.trim().length >= 3 && (format === "slides" ? hasContent(slides) : writtenBody.trim().length >= (format === "quick" ? 10 : 20)) : slideMode ? hasContent(slides) : body.trim().length >= 5 || hasVideo;
   const validAll = valid && topic.trim().length >= 2;
   const changed = !already && (conv(title) !== title || conv(body) !== body);
 
@@ -120,7 +126,7 @@ export function Composer({ state, onClose }: { state: Exclude<ComposerState, nul
     const id = edit?.id;
     const ok = await publish(
       kind === "thought"
-        ? { kind, id, category: finalCategory, title: conv(title.trim()), body: conv(body.trim()), imageUrl: imgUrl, oldImageUrl: edit?.kind === "thought" ? edit.image_url ?? null : null }
+        ? { kind, id, category: finalCategory, title: conv(title.trim()), body: conv(writtenBody.trim()), format, blocks: format === "slides" ? null : blocks.map((b) => ({ ...b, ...(b.text !== undefined ? { text: conv(b.text) } : {}), ...(b.items ? { items: b.items.map(conv) } : {}), ...(b.caption ? { caption: conv(b.caption) } : {}) })), slides: format === "slides" ? mapText(slides, conv) : null, oldSlides: edit?.kind === "thought" ? edit.slides : null, oldBlocks: edit?.kind === "thought" ? edit.blocks : null, imageUrl: imgUrl, oldImageUrl: edit?.kind === "thought" ? edit.image_url ?? null : null }
         : slideMode
           ? { kind, id, category: finalCategory, quote: conv(slidesText(slides)).slice(0, 280), tone, videoUrl: null, oldVideoUrl: edit?.kind === "short" ? edit.video_url : null, slides: mapText(slides, conv), oldSlides: edit?.kind === "short" ? edit.slides : null }
           : { kind, id, category: finalCategory, quote: conv(body.trim()), tone, videoUrl: url, oldVideoUrl: edit?.kind === "short" ? edit.video_url : null, slides: null, oldSlides: edit?.kind === "short" ? edit.slides : null },
@@ -169,6 +175,13 @@ export function Composer({ state, onClose }: { state: Exclude<ComposerState, nul
           )}
 
           {kind === "thought" && (
+            <div className="flex gap-2" role="group" aria-label={u("Fikr formati")}>
+              {([["quick", "Qisqa fikr"], ["article", "Maqola"], ["slides", "Slaydli fikr"]] as const).map(([f, label]) => (
+                <button key={f} className={chip(format === f)} aria-pressed={format === f} onClick={() => setFormat(f)}>{u(label)}</button>
+              ))}
+            </div>
+          )}
+          {kind === "thought" && (
             <input value={title} onChange={(e) => setTitle(e.target.value)} maxLength={140} aria-label={u("Sarlavha")} placeholder={u("Sarlavha")} className={field} />
           )}
           {kind === "short" && (
@@ -187,11 +200,12 @@ export function Composer({ state, onClose }: { state: Exclude<ComposerState, nul
               {aiMsg && <p role="status" className="mt-2 text-[13px] text-muted">{aiMsg}</p>}
             </div>
           )}
-          {slideMode && <SlideEditor slides={slides} onChange={setSlides} u={u} c={c} />}
-          {!slideMode && <textarea value={body} onChange={(e) => setBody(e.target.value)} maxLength={kind === "thought" ? 8000 : 280}
-            aria-label={kind === "thought" ? u("Matn") : u("Qisqa matn")}
-            placeholder={kind === "thought" ? u("Matn (abzaslar orasiga bo‘sh qator qoldiring)") : u("Qisqa fikr yoki video izohi")}
-            className={`${field} ${kind === "thought" ? "min-h-[220px]" : "min-h-[110px]"} resize-none`} />}
+          {kind === "thought" && format === "slides" && <EditorialSlideEditor slides={slides} onChange={setSlides} u={u} />}
+          {kind === "thought" && format !== "slides" && <EditorialBlockEditor blocks={blocks} onChange={setBlocks} u={u} />}
+          {kind === "short" && slideMode && <SlideEditor slides={slides} onChange={setSlides} u={u} c={c} />}
+          {kind === "short" && !slideMode && <textarea value={body} onChange={(e) => setBody(e.target.value)} maxLength={280}
+            aria-label={u("Qisqa matn")} placeholder={u("Qisqa fikr yoki video izohi")}
+            className={field + " min-h-[110px] resize-none"} />}
 
           {kind === "short" && !slideMode && (
             <>
