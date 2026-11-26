@@ -6,9 +6,9 @@
 export type Font = "display" | "serif" | "sans";
 type Base = { id: string; x: number; y: number; w: number; rot: number };
 export type TextEl = Base & { type: "text"; text: string; size: number; color: string; font: Font; align: "left" | "center" | "right"; bold: boolean; italic: boolean; bar: boolean };
-export type ImageEl = Base & { type: "image"; src: string; round: boolean };
+export type ImageEl = Base & { type: "image"; src: string; round: boolean; fade?: number };
 export type El = TextEl | ImageEl;
-export type Slide = { bg: { css: string; image: string | null; dim: number }; els: El[] };
+export type Slide = { bg: { css: string; image: string | null; dim: number; fade?: number }; els: El[] };
 
 export const MAX_SLIDES = 10;
 export const MAX_ELS = 12;
@@ -63,9 +63,9 @@ export function cleanSlides(raw: unknown): Slide[] | null {
       if (e.type === "text") {
         els.push({ ...base, type: "text", text: str(e.text), size: num(e.size, 26, 8, 120), color: str(e.color, "#ffffff"), font: e.font === "serif" || e.font === "sans" ? e.font : "display",
           align: e.align === "left" || e.align === "right" ? e.align : "center", bold: !!e.bold, italic: !!e.italic, bar: !!e.bar });
-      } else if (e.type === "image" && typeof e.src === "string") els.push({ ...base, type: "image", src: e.src, round: !!e.round });
+      } else if (e.type === "image" && typeof e.src === "string") els.push({ ...base, type: "image", src: e.src, round: !!e.round, fade: num(e.fade, 0, 0, 50) });
     }
-    out.push({ bg: { css: str(bg.css, BGS[0]), image: typeof bg.image === "string" ? bg.image : null, dim: num(bg.dim, 0, 0, 0.8) }, els });
+    out.push({ bg: { css: str(bg.css, BGS[0]), image: typeof bg.image === "string" ? bg.image : null, dim: num(bg.dim, 0, 0, 0.8), fade: num(bg.fade, 0, 0, 100) }, els });
   }
   return out.length ? out : null;
 }

@@ -8,6 +8,14 @@ function Pic({ src, ...rest }: { src: string } & React.ImgHTMLAttributes<HTMLIma
   return <img {...rest} src={direct ? src : proxied(src)} onError={() => setDirect(true)} alt="" draggable={false} />;
 }
 
+/** Chetlarini fonga eritadi: to‘rt tomondan shaffoflikka o‘tadi. */
+const fadeMask = (f = 0): React.CSSProperties => {
+  if (!f) return {};
+  const g = (d: string) => `linear-gradient(to ${d}, transparent 0%, #000 ${f}%, #000 ${100 - f}%, transparent 100%)`;
+  const m = `${g("right")}, ${g("bottom")}`;
+  return { WebkitMaskImage: m, maskImage: m, WebkitMaskComposite: "source-in", maskComposite: "intersect" };
+};
+
 const FONT = { display: "font-display", serif: "font-serif", sans: "font-sans" } as const;
 
 type Props = {
@@ -44,8 +52,12 @@ export function SlideCanvas({ slide, c, fill, sel, onSel, onMove }: Props) {
     <div ref={box} onPointerDown={() => onSel?.(null)}
       className={`relative overflow-hidden ${fill ? "absolute inset-0" : "aspect-[9/16] w-full rounded-2xl"}`}
       style={{ containerType: "inline-size", background: slide.bg.css }}>
-      {slide.bg.image && <Pic key={slide.bg.image} src={slide.bg.image} className="absolute inset-0 h-full w-full object-cover" />}
-      {slide.bg.dim > 0 && <div className="absolute inset-0 bg-black" style={{ opacity: slide.bg.dim }} aria-hidden="true" />}
+      {slide.bg.image && (
+        <div className="absolute inset-0" style={slide.bg.fade ? { WebkitMaskImage: `linear-gradient(to bottom, #000 ${100 - slide.bg.fade}%, transparent 100%)`, maskImage: `linear-gradient(to bottom, #000 ${100 - slide.bg.fade}%, transparent 100%)` } : undefined}>
+          <Pic key={slide.bg.image} src={slide.bg.image} className="absolute inset-0 h-full w-full object-cover" />
+          {slide.bg.dim > 0 && <div className="absolute inset-0 bg-black" style={{ opacity: slide.bg.dim }} aria-hidden="true" />}
+        </div>
+      )}
       {slide.els.map((e) => (
         <div key={e.id} onPointerDown={(ev) => drag(ev, e)}
           className={edit ? "cursor-move" : ""}
@@ -58,7 +70,7 @@ export function SlideCanvas({ slide, c, fill, sel, onSel, onMove }: Props) {
               {c(e.text) || (edit ? "…" : "")}
             </p>
           ) : (
-            <Pic key={e.src} src={e.src} className="block w-full object-cover" style={e.round ? { borderRadius: "50%", aspectRatio: "1" } : { borderRadius: "2cqw" }} />
+            <Pic key={e.src} src={e.src} className="block w-full object-cover" style={{ ...(e.round ? { borderRadius: "50%", aspectRatio: "1" } : { borderRadius: e.fade ? 0 : "2cqw" }), ...fadeMask(e.fade) }} />
           )}
         </div>
       ))}

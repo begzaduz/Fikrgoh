@@ -52,8 +52,8 @@ export function SlideEditor({ slides, onChange, u, c }: { slides: Slide[]; onCha
     setBusy(0);
     try {
       const src = await uploadImage(f, setBusy);
-      if (kind === "bg") setSlide((s) => ({ ...s, bg: { ...s.bg, image: src, dim: s.bg.dim || 0.25 } }));
-      else addEl({ id: uid(), type: "image", x: 50, y: 40, w: 60, rot: 0, src, round: false });
+      if (kind === "bg") setSlide((s) => ({ ...s, bg: { ...s.bg, image: src, dim: s.bg.dim || 0.2, fade: s.bg.fade || 35 } }));
+      else addEl({ id: uid(), type: "image", x: 50, y: 40, w: 60, rot: 0, src, round: false, fade: 30 });
     } catch (e) { setErr(`Rasm yuklanmadi: ${e instanceof Error ? e.message : "noma’lum xato"}`); }
     setBusy(null);
   };
@@ -61,7 +61,7 @@ export function SlideEditor({ slides, onChange, u, c }: { slides: Slide[]; onCha
   const btn = "flex min-h-[40px] min-w-[40px] items-center justify-center gap-1 rounded-xl bg-sand px-2.5 text-[12px] font-semibold disabled:opacity-40";
   const chip = (on: boolean) => `min-h-[36px] rounded-full border px-3 text-[12px] font-semibold ${on ? "border-clay bg-clay text-onclay" : "border-line text-muted"}`;
   const range = (label: string, v: number, lo: number, hi: number, on: (n: number) => void, step = 1) => (
-    <label className="flex items-center gap-2 text-[12px] text-muted"><span className="w-16 shrink-0">{u(label)}</span>
+    <label className="flex items-center gap-2 text-[12px] text-muted"><span className="w-24 shrink-0">{u(label)}</span>
       <input type="range" min={lo} max={hi} step={step} value={v} onChange={(e) => on(Number(e.target.value))} className="h-8 flex-1" aria-label={u(label)} /></label>
   );
 
@@ -106,7 +106,12 @@ export function SlideEditor({ slides, onChange, u, c }: { slides: Slide[]; onCha
               {range("O‘lcham", el.size, 10, 100, (n) => setEl(el.id, { size: n }))}
             </>
           )}
-          {el.type === "image" && <button className={chip(el.round)} aria-pressed={el.round} onClick={() => setEl(el.id, { round: !el.round })}>{u("Dumaloq")}</button>}
+          {el.type === "image" && (
+            <>
+              <button className={chip(el.round)} aria-pressed={el.round} onClick={() => setEl(el.id, { round: !el.round })}>{u("Dumaloq")}</button>
+              {range("Eritish", el.fade ?? 0, 0, 50, (n) => setEl(el.id, { fade: n }))}
+            </>
+          )}
           {range("Kenglik", el.w, 10, 100, (n) => setEl(el.id, { w: n }))}
           {range("Burish", el.rot, -45, 45, (n) => setEl(el.id, { rot: n }))}
           <div className="flex flex-wrap gap-1.5">
@@ -141,6 +146,7 @@ export function SlideEditor({ slides, onChange, u, c }: { slides: Slide[]; onCha
           <button className={btn} onClick={() => bgPick.current?.click()}><ImagePlus size={16} /> {u("Fon rasmi")}</button>
           {slide.bg.image && <button className={chip(false)} onClick={() => setSlide((s) => ({ ...s, bg: { ...s.bg, image: null, dim: 0 } }))}>{u("Olib tashlash")}</button>}
         </div>
+        {slide.bg.image && range("Pastdan eritish", slide.bg.fade ?? 0, 0, 100, (n) => setSlide((s) => ({ ...s, bg: { ...s.bg, fade: n } })))}
         {slide.bg.image && range("Qorayish", slide.bg.dim, 0, 0.8, (n) => setSlide((s) => ({ ...s, bg: { ...s.bg, dim: n } })), 0.05)}
       </div>
 
