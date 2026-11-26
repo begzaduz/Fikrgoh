@@ -17,7 +17,7 @@ export type PublishInput =
 export type ComposerState =
   | null
   | { mode: "new" }
-  | { mode: "edit"; kind: "thought"; id: number; category: api.Category; title: string; body: string; image_url?: string | null; format?: api.Thought["format"]; blocks?: api.ContentBlock[] | null; slides?: Slide[] | null }
+  | { mode: "edit"; kind: "thought"; id: number; category: api.Category; title: string; body: string; image_url?: string | null; format?: api.Thought["format"]; blocks?: ContentBlock[] | null; slides?: Slide[] | null }
   | { mode: "edit"; kind: "short"; id: number; category: api.Category; quote: string; tone: api.Short["tone"]; video_url: string | null; slides: Slide[] | null };
 
 type Store = {
