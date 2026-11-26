@@ -204,3 +204,18 @@ export async function removeVideo(url: string | null) {
 
 /** Fikr rasmi uchun: yuklash bitta (video bilan bir xil bucket). */
 export const uploadImage = uploadVideo;
+
+/* ---------- AI: matnni slaydlarga bo‘lish (Edge Function slide-ai, faqat admin) ---------- */
+export type AiSlide = { bg: number; layout: "quote" | "big" | "plain" | "title_body"; parts: string[] };
+export async function aiSlides(text: string): Promise<{ slides: AiSlide[]; ai: boolean; note: string }> {
+  const token = (await supabase.auth.getSession()).data.session?.access_token;
+  if (!token) throw new Error("kirish kerak");
+  const res = await fetch(`${API_URL}/functions/v1/slide-ai`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", apikey: import.meta.env.VITE_SUPABASE_ANON_KEY as string, Authorization: `Bearer ${token}` },
+    body: JSON.stringify({ text }),
+  });
+  const out = await res.json().catch(() => null);
+  if (!res.ok || !Array.isArray(out?.slides)) throw new Error(out?.error ?? `xato ${res.status}`);
+  return out;
+}
