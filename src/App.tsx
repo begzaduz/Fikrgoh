@@ -1,6 +1,6 @@
 import { useState } from "react";
-import { AnimatePresence, motion } from "framer-motion";
-import { Bookmark, Clapperboard, House, Plus, Sparkles, UserRound } from "lucide-react";
+import { AnimatePresence, MotionConfig, motion } from "framer-motion";
+import { Bookmark, Clapperboard, House, Plus, UserRound } from "lucide-react";
 import { Composer } from "./components/Composer";
 import { Intro } from "./components/Intro";
 import { Wordmark } from "./components/Wordmark";
@@ -13,17 +13,10 @@ import { useApp } from "./store";
 type Tab = "home" | "shorts" | "saved" | "profile";
 
 export default function App() {
-  const { status, loginError, notice, u, canWrite, composer, setComposer, thoughts, requestOpen } = useApp();
+  const { status, loginError, notice, u, canWrite, composer, setComposer } = useApp();
   const [tab, setTab] = useState<Tab>("home");
   const [entered, setEntered] = useState(false);
   const [opening, setOpening] = useState(false);
-
-  /** Markaziy tugma: admin uchun "yangi fikr", o‘quvchi uchun tasodifiy fikr. */
-  const center = () => {
-    if (canWrite) return setComposer({ mode: "new" });
-    const t = thoughts[Math.floor(Math.random() * thoughts.length)];
-    if (t) { requestOpen(t.id); setTab("home"); }
-  };
 
   let content;
   if (status === "loading") content = null;
@@ -40,17 +33,26 @@ export default function App() {
       </div>
     );
   else {
-    const item = (id: Tab, aria: string, icon: React.ReactNode, raw = false) => {
+    const item = (id: Tab, aria: string, Icon: typeof House, raw = false) => {
       const on = tab === id;
       const name = raw ? aria : u(aria);
       return (
         <button key={id} onClick={() => setTab(id)} aria-label={name} title={name} aria-current={on ? "page" : undefined}
-          className={`flex min-h-[56px] flex-1 items-center justify-center ${on ? "text-clay" : "text-muted"}`}>
-          {icon}
+          className={`relative flex h-12 items-center justify-center gap-2 rounded-full ${on ? "px-4 text-onclay" : "w-12 text-muted"}`}>
+          {on && (
+            <motion.span layoutId="nav-pill" className="absolute inset-0 rounded-full bg-clay"
+              transition={{ type: "spring", stiffness: 420, damping: 34 }} />
+          )}
+          <Icon size={22} strokeWidth={on ? 2.2 : 1.7} className="relative" />
+          {on && (
+            <motion.span initial={{ opacity: 0, width: 0 }} animate={{ opacity: 1, width: "auto" }} transition={{ duration: 0.22 }}
+              className="relative overflow-hidden whitespace-nowrap text-[13px] font-semibold">
+              {name}
+            </motion.span>
+          )}
         </button>
       );
     };
-    const ic = (I: typeof House, id: Tab) => <I size={26} strokeWidth={tab === id ? 2.2 : 1.7} />;
     content = (
       <div className="relative mx-auto flex h-full max-w-[560px] flex-col">
         <header className="flex min-h-[56px] items-center justify-center px-5 pb-1 pt-[calc(8px+var(--safe-top))]">
@@ -59,16 +61,20 @@ export default function App() {
         <main className="min-h-0 flex-1 overflow-y-auto">
           {tab === "home" ? <Home /> : tab === "shorts" ? <Shorts /> : tab === "saved" ? <Saved onOpen={() => setTab("home")} /> : <Profile />}
         </main>
-        <nav className="glass mx-3 mb-[calc(8px+env(safe-area-inset-bottom,0px))] mt-1 flex items-center rounded-[30px] px-2">
-          {item("home", "Bosh sahifa", ic(House, "home"))}
-          {item("shorts", "Shorts", ic(Clapperboard, "shorts"), true)}
-          <button onClick={center} aria-label={canWrite ? u("Yangi fikr") : u("Tasodifiy fikr")} title={canWrite ? u("Yangi fikr") : u("Tasodifiy fikr")}
-            className="mx-1 flex h-14 w-14 shrink-0 items-center justify-center rounded-full border border-line bg-sand text-clay">
-            {canWrite ? <Plus size={28} /> : <Sparkles size={26} />}
+        {canWrite && tab === "home" && !composer && (
+          <button onClick={() => setComposer({ mode: "new" })} aria-label={u("Yangi fikr")} title={u("Yangi fikr")}
+            className="absolute bottom-[calc(84px+env(safe-area-inset-bottom,0px))] right-4 z-20 flex h-14 w-14 items-center justify-center rounded-full bg-clay text-onclay shadow-lg">
+            <Plus size={28} />
           </button>
-          {item("saved", "Saqlanganlar", ic(Bookmark, "saved"))}
-          {item("profile", "Profil", ic(UserRound, "profile"))}
-        </nav>
+        )}
+        <MotionConfig reducedMotion="user">
+          <nav className="glass mx-3 mb-[calc(8px+env(safe-area-inset-bottom,0px))] mt-1 flex items-center justify-between rounded-full p-1.5">
+            {item("home", "Bosh sahifa", House)}
+            {item("shorts", "Shorts", Clapperboard, true)}
+            {item("saved", "Saqlanganlar", Bookmark)}
+            {item("profile", "Profil", UserRound)}
+          </nav>
+        </MotionConfig>
         <AnimatePresence>{composer && <Composer key={composer.mode === "edit" ? `${composer.kind}-${composer.id}` : "new"} state={composer} onClose={() => setComposer(null)} />}</AnimatePresence>
         {notice && <div role="status" className="fixed left-1/2 top-20 z-[60] -translate-x-1/2 rounded-full bg-ink px-5 py-2.5 text-[13px] font-semibold text-paper">{u(notice)}</div>}
       </div>
